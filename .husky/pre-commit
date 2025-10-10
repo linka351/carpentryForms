@@ -1,0 +1,2 @@
+#!/usr/bin/env sh # Ta linia jest okej
+npx lint-staged
