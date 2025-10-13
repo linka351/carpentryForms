@@ -1,9 +1,6 @@
 import { useFormik } from "formik";
-import { useState } from "react";
 
 function FormatForms() {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
   const formik = useFormik({
     initialValues: {
       length: 0,
@@ -12,7 +9,9 @@ function FormatForms() {
       kerf: 0,
     },
     onSubmit: () => {
-      setIsSubmitted((prev) => !prev);
+      console.log(
+        `Długość: ${formik.values.length}, Szerokość: ${formik.values.width}, Margines: ${formik.values.margin}, Kerf: ${formik.values.kerf}`
+      );
     },
   });
   return (
@@ -73,15 +72,6 @@ function FormatForms() {
           </button>
         </div>
       </form>
-      {isSubmitted && (
-        <div
-          style={{
-            width: `${formik.values.width}px`,
-            height: `${formik.values.length}px`,
-          }}
-          className="mt-4 mb-4 border bg-gray-200"
-        ></div>
-      )}
     </>
   );
 }
