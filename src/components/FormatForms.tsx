@@ -1,4 +1,20 @@
 import { useFormik } from "formik";
+import * as Yup from "yup";
+
+const validationSchema = Yup.object({
+  length: Yup.number()
+    .min(1, "Długość musi być większa niż 0")
+    .required("Długość jest wymagana"),
+  width: Yup.number()
+    .min(1, "Szerokość musi być większa niż 0")
+    .required("Szerokość jest wymagana"),
+  margin: Yup.number()
+    .min(1, "margines musi być większy niż 0")
+    .required("Margines jest wymagany"),
+  kerf: Yup.number()
+    .min(1, "kerf musi być większy niż 0")
+    .required("Kerf jest wymagany"),
+});
 
 function FormatForms() {
   const formik = useFormik({
@@ -8,6 +24,8 @@ function FormatForms() {
       margin: 0,
       kerf: 0,
     },
+    validationSchema,
+
     onSubmit: () => {
       console.log(
         `Długość: ${formik.values.length}, Szerokość: ${formik.values.width}, Margines: ${formik.values.margin}, Kerf: ${formik.values.kerf}`
@@ -32,6 +50,8 @@ function FormatForms() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
           />
         </div>
+        <div className="text-red-500 text-xs">{formik.errors.length}</div>
+
         <div className="mb-4">
           <label htmlFor="width">Szerokość</label>
           <input
@@ -43,6 +63,8 @@ function FormatForms() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
           />
         </div>
+        <div className="text-red-500 text-xs">{formik.errors.width}</div>
+
         <div className="mb-4">
           <label htmlFor="margin">Margines</label>
           <input
@@ -54,6 +76,8 @@ function FormatForms() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
           />
         </div>
+        <div className="text-red-500 text-xs">{formik.errors.margin}</div>
+
         <div className="mb-4">
           <label htmlFor="kerf">Kerf</label>
           <input
@@ -64,6 +88,8 @@ function FormatForms() {
             value={formik.values.kerf}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
           />
+          <div className="text-red-500 text-xs">{formik.errors.kerf}</div>
+
           <button
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 text-black font-semibold rounded-md hover:bg-blue-700 mt-4"
