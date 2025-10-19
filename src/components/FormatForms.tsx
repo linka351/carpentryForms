@@ -1,103 +1,138 @@
-import { useFormik } from "formik";
-import * as Yup from "yup";
-
-const validationSchema = Yup.object({
-  length: Yup.number()
-    .min(1, "Długość musi być większa niż 0")
-    .required("Długość jest wymagana"),
-  width: Yup.number()
-    .min(1, "Szerokość musi być większa niż 0")
-    .required("Szerokość jest wymagana"),
-  margin: Yup.number()
-    .min(1, "margines musi być większy niż 0")
-    .required("Margines jest wymagany"),
-  kerf: Yup.number()
-    .min(1, "kerf musi być większy niż 0")
-    .required("Kerf jest wymagany"),
-});
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import {
+  formatFormsValidation,
+  type FormValues,
+} from "@/validations/formatFormsValidation";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function FormatForms() {
-  const formik = useFormik({
-    initialValues: {
+  const form = useForm<FormValues>({
+    resolver: yupResolver(formatFormsValidation),
+    defaultValues: {
       length: 0,
       width: 0,
       margin: 0,
       kerf: 0,
     },
-    validationSchema,
-
-    onSubmit: () => {
-      console.log(
-        `Długość: ${formik.values.length}, Szerokość: ${formik.values.width}, Margines: ${formik.values.margin}, Kerf: ${formik.values.kerf}`
-      );
-    },
   });
+
+  function onSubmit(values: FormValues) {
+    console.log(
+      `Długość: ${values.length}, Szerokość: ${values.width}, Margines: ${values.margin}, Kerf: ${values.kerf}`
+    );
+  }
+
   return (
     <>
-      <p>Parametry Płyty</p>
-      <form
-        onSubmit={formik.handleSubmit}
-        className="p-4 border rounded shadow-md"
-      >
-        <div className="mb-4">
-          <label htmlFor="length">Długość</label>
-          <input
-            id="length"
+      <p className="font-bold text-lg mb-4">Parametry Płyty</p>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="p-4 border rounded-lg shadow-md space-y-4"
+        >
+          <FormField
+            control={form.control}
             name="length"
-            type="number"
-            onChange={formik.handleChange}
-            value={formik.values.length}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Długość (mm)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Wprowadź długość"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="text-red-500 text-xs">{formik.errors.length}</div>
 
-        <div className="mb-4">
-          <label htmlFor="width">Szerokość</label>
-          <input
-            id="width"
+          <FormField
+            control={form.control}
             name="width"
-            type="number"
-            onChange={formik.handleChange}
-            value={formik.values.width}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Szerokość (mm)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Wprowadź szerokość"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="text-red-500 text-xs">{formik.errors.width}</div>
 
-        <div className="mb-4">
-          <label htmlFor="margin">Margines</label>
-          <input
-            id="margin"
+          <FormField
+            control={form.control}
             name="margin"
-            type="number"
-            onChange={formik.handleChange}
-            value={formik.values.margin}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Margines (mm)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Wprowadź margines"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="text-red-500 text-xs">{formik.errors.margin}</div>
 
-        <div className="mb-4">
-          <label htmlFor="kerf">Kerf</label>
-          <input
-            id="kerf"
+          <FormField
+            control={form.control}
             name="kerf"
-            type="number"
-            onChange={formik.handleChange}
-            value={formik.values.kerf}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kerf (mm)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Wprowadź Kerf"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseFloat(e.target.value) || 0)
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <div className="text-red-500 text-xs">{formik.errors.kerf}</div>
 
-          <button
+          <Button
+            variant="default"
             type="submit"
-            className="w-full py-2 px-4 bg-blue-600 text-black font-semibold rounded-md hover:bg-blue-700 mt-4"
+            className="w-full bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
           >
-            Submit
-          </button>
-        </div>
-      </form>
+            Oblicz i Zatwierdź
+          </Button>
+        </form>
+      </Form>
     </>
   );
 }
