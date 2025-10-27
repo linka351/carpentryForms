@@ -15,11 +15,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "@/components/ui/form/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button/button";
 
-type FormFieldConfig<T extends FieldValues> = {
+export type FormFieldConfig<T extends FieldValues> = {
   name: Path<T>;
   label: string;
   placeholder: string;
@@ -42,7 +42,7 @@ function ReusableForm<T extends FieldValues>({
   title,
 }: ReusableFormProps<T>) {
   const form = useForm<T>({
-    resolver: yupResolver(validationSchema) as Resolver<T, any>,
+    resolver: yupResolver(validationSchema) as Resolver<T>,
     defaultValues: defaultValues as DefaultValues<T>,
   });
 

@@ -2,9 +2,9 @@ import {
   cutSheetFormsValidation,
   type CutoutFormValues,
 } from "@/validations/cutSheetFormsValidation";
-import ReusableForm from "./ReusableForm";
+import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 const initialCutSheetValues: CutoutFormValues = {
   length: 0,
@@ -12,6 +12,33 @@ const initialCutSheetValues: CutoutFormValues = {
   quanity: 0,
   describe: "",
 };
+
+const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
+  {
+    name: "length",
+    label: "Długość (mm)",
+    placeholder: "Wprowadź długość",
+    type: "number",
+  },
+  {
+    name: "width",
+    label: "Szerokość (mm)",
+    placeholder: "Wprowadź szerokość",
+    type: "number",
+  },
+  {
+    name: "quanity",
+    label: "Ilość",
+    placeholder: "Wprowadź ilość",
+    type: "number",
+  },
+  {
+    name: "describe",
+    label: "Opis",
+    placeholder: "Wprowadź Opis",
+    type: "text",
+  },
+];
 
 export default function FormatForms() {
   const [cuts, setCuts] = useState<CutoutFormValues[]>([]);
@@ -41,45 +68,14 @@ export default function FormatForms() {
     );
   };
 
-  const mainBoardFields = useMemo(
-    () =>
-      [
-        {
-          name: "length",
-          label: "Długość (mm)",
-          placeholder: "Wprowadź długość",
-          type: "number",
-        },
-        {
-          name: "width",
-          label: "Szerokość (mm)",
-          placeholder: "Wprowadź szerokość",
-          type: "number",
-        },
-        {
-          name: "quanity",
-          label: "Ilość",
-          placeholder: "Wprowadź ilość",
-          type: "number",
-        },
-        {
-          name: "describe",
-          label: "Opis",
-          placeholder: "Wprowadź Opis",
-          type: "string",
-        },
-      ] as const,
-    []
-  );
-
   return (
     <>
       <ReusableForm<CutoutFormValues>
         title="Parametry Formatki"
         defaultValues={initialCutSheetValues}
-        validationSchema={cutSheetFormsValidation as any}
+        validationSchema={cutSheetFormsValidation}
         onSubmit={handleMainBoardSubmit}
-        fields={mainBoardFields as any}
+        fields={mainBoardFields}
       />
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Lista Formatów (Cięć):</h2>
