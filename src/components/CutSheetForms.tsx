@@ -4,7 +4,7 @@ import {
 } from "@/validations/cutSheetFormsValidation";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 
-import { useState } from "react";
+import { useAppData } from "@/context/DataContext";
 
 const initialCutSheetValues: CutoutFormValues = {
   length: 0,
@@ -41,7 +41,7 @@ const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
 ];
 
 export default function FormatForms() {
-  const [cuts, setCuts] = useState<CutoutFormValues[]>([]);
+  const { cuts, addCuts, deleteCutout } = useAppData();
 
   function handleMainBoardSubmit(
     values: CutoutFormValues,
@@ -57,15 +57,13 @@ export default function FormatForms() {
       })
     );
 
-    setCuts((prevCuts) => [...prevCuts, ...elementsToAdd]);
+    addCuts(elementsToAdd);
 
     resetForm(initialCutSheetValues);
   }
 
   const handleDeleteCutout = (indexToDelete: number) => {
-    setCuts((prevCuts) =>
-      prevCuts.filter((_, index) => index !== indexToDelete)
-    );
+    deleteCutout(indexToDelete);
   };
 
   return (
@@ -80,6 +78,7 @@ export default function FormatForms() {
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Lista Formatów (Cięć):</h2>
 
+        {/* ✅ STAN: Renderujemy listę z globalnego stanu `cuts` */}
         {cuts.length === 0 ? (
           <p>Brak wprowadzonych elementów.</p>
         ) : (
