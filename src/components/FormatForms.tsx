@@ -11,9 +11,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "@/components/ui/form/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button/button";
+import { useAppData } from "@/context/DataContext";
 
 function FormatForms() {
   const form = useForm<FormValues>({
@@ -26,10 +27,10 @@ function FormatForms() {
     },
   });
 
+  const { setPlateParams } = useAppData();
+
   function onSubmit(values: FormValues) {
-    console.log(
-      `Długość: ${values.length}, Szerokość: ${values.width}, Margines: ${values.margin}, Kerf: ${values.kerf}`
-    );
+    setPlateParams(values);
   }
 
   return (
