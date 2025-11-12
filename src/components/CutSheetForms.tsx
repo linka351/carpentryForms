@@ -4,13 +4,14 @@ import {
 } from "@/validations/cutSheetFormsValidation";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const initialCutSheetValues: CutoutFormValues = {
   length: 0,
   width: 0,
   quanity: 0,
   describe: "",
+  id: 0,
 };
 
 const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
@@ -40,8 +41,9 @@ const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
   },
 ];
 
-export default function FormatForms() {
+export default function CutSheetForms() {
   const [cuts, setCuts] = useState<CutoutFormValues[]>([]);
+  const idCounter = useRef(0);
 
   function handleMainBoardSubmit(
     values: CutoutFormValues,
@@ -54,6 +56,7 @@ export default function FormatForms() {
       () => ({
         ...values,
         quanity: 1,
+        id: idCounter.current++,
       })
     );
 
@@ -62,10 +65,8 @@ export default function FormatForms() {
     resetForm(initialCutSheetValues);
   }
 
-  const handleDeleteCutout = (indexToDelete: number) => {
-    setCuts((prevCuts) =>
-      prevCuts.filter((_, index) => index !== indexToDelete)
-    );
+  const handleDeleteCutout = (idToDelete: number) => {
+    setCuts((prevCuts) => prevCuts.filter((cut) => cut.id !== idToDelete));
   };
 
   return (

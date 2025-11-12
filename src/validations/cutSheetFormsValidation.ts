@@ -12,6 +12,7 @@ export const cutSheetFormsValidation = Yup.object({
   quanity: Yup.number().min(1, "minimum 1 formatka").required("Pole wymagane"),
 
   describe: Yup.string(),
+  id: Yup.number().required(),
 });
 
 export type CutoutFormValues = Yup.InferType<typeof cutSheetFormsValidation>;
