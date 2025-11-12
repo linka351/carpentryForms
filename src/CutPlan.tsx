@@ -1,83 +1,92 @@
-import { useMemo } from "react";
-import { MaxRectsPacker, Rectangle } from "maxrects-packer";
 import { useAppData } from "./context/DataContext";
+import { MaxRectsPacker } from "maxrects-packer";
 
 function CutPlan() {
   const { plateParams, cuts } = useAppData();
 
-  // margin i kerf pobierane bezpośrednio z kontekstu/formularza
   const margin = plateParams.margin;
   const kerf = plateParams.kerf;
+  const plateWidth = plateParams.width;
+  const plateHeight = plateParams.length;
 
-  const packedRects = useMemo(() => {
-    if (!plateParams.width || !plateParams.length || cuts.length === 0)
-      return [];
+  const workWidth = plateWidth - 2 * margin;
+  const workHeight = plateHeight - 2 * margin;
 
-    // Kontener do packera pomniejszony o margines z każdej strony
-    const packer = new MaxRectsPacker(
-      plateParams.width - 2 * margin,
-      plateParams.length - 2 * margin,
-      kerf, // kerf = odstęp między elementami
-      { smart: true, pot: false, allowRotation: true }
-    );
+  const packer = new MaxRectsPacker(workWidth, workHeight, kerf, {
+    smart: false,
+    allowRotation: true,
+    pot: false,
+    square: false,
+  });
 
-    // Tworzymy prostokąty dla każdej sztuki
-    const blocksToPack: Rectangle[] = cuts.flatMap((cut) =>
-      Array.from({ length: cut.quanity || 1 }).map(
-        () =>
-          ({
-            width: cut.width,
-            height: cut.length,
-          } as Rectangle)
-      )
-    );
+  cuts
+    .sort((a, b) => Math.max(b.width, b.length) - Math.max(a.width, a.length))
+    .forEach((cut) => {
+      packer.add(
+        cut.width,
+        cut.length,
+        cut.describe
+          ? `${cut.describe} (${cut.width}×${cut.length})`
+          : `${cut.width}×${cut.length}`
+      );
+    });
 
-    packer.addArray(blocksToPack);
+  const usageData = packer.bins.map((bin) => {
+    const usedArea = bin.rects.reduce((sum, rect) => {
+      const widthWithKerf = rect.x > 0 ? rect.width + kerf : rect.width;
+      const heightWithKerf = rect.y > 0 ? rect.height + kerf : rect.height;
+      return sum + widthWithKerf * heightWithKerf;
+    }, 0);
 
-    return packer.bins.flatMap((bin) => bin.rects);
-  }, [plateParams, cuts, margin, kerf]);
+    const totalArea = workWidth * workHeight;
+    const usagePercent = ((usedArea / totalArea) * 100).toFixed(2);
+    return { usedArea, totalArea, usagePercent };
+  });
 
   return (
     <>
-      <div
-        className="relative border-2 border-black bg-gray-200 overflow-hidden"
-        style={{
-          width: `${plateParams.width}px`,
-          height: `${plateParams.length}px`,
-        }}
-      >
-        {packedRects.map((rect, index) => {
-          const width = rect.rot ? rect.height : rect.width;
-          const height = rect.rot ? rect.width : rect.height;
-
-          return (
+      {packer.bins.map((bin, binIndex) => (
+        <div key={binIndex} className="mb-10">
+          <div
+            className="relative m-5 border-2 border-black box-border"
+            style={{
+              width: plateWidth,
+              height: plateHeight,
+              boxSizing: "content-box",
+            }}
+          >
             <div
-              key={index}
-              className="absolute flex items-center justify-center text-white text-[8px] box-border border border-blue-900 bg-blue-500/60"
+              className="absolute box-border"
               style={{
-                top: `${rect.y + margin}px`,
-                left: `${rect.x + margin}px`,
-
-                width: `${width}px`,
-                height: `${height}px`,
+                top: margin,
+                left: margin,
+                right: margin,
+                bottom: margin,
               }}
-              title={`Wymiary: ${width}x${height} px\nPozycja: (${rect.x}, ${rect.y})`}
             >
-              {`${width}x${height}`}
+              {bin.rects.map((rect, idx) => (
+                <div
+                  key={idx}
+                  className="absolute flex items-center justify-center text-[8px] text-center bg-blue-500/30"
+                  style={{
+                    left: rect.x,
+                    top: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                    boxSizing: "content-box",
+                  }}
+                >
+                  {rect.data}
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      <div className="mt-4">
-        <h3 className="text-lg font-semibold">Lista Cięć (Wejście):</h3>
-        {cuts.map((cut, index) => (
-          <p key={index} className="text-sm">
-            {cut.length} x {cut.width} px, Ilość: {cut.quanity}, Opis:{" "}
-            {cut.describe}
+          <p className="text-center font-bold">
+            Wykorzystanie płyty: {usageData[binIndex].usagePercent}%
           </p>
-        ))}
-      </div>
+        </div>
+      ))}
     </>
   );
 }

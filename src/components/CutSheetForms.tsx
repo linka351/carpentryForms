@@ -4,12 +4,12 @@ import {
 } from "@/validations/cutSheetFormsValidation";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 
-import { useAppData } from "@/context/DataContext";
+import { useAppData } from "../context/use.app.data.context";
 
 const initialCutSheetValues: CutoutFormValues = {
-  length: 0,
-  width: 0,
-  quanity: 0,
+  length: 1,
+  width: 1,
+  quanity: 1,
   describe: "",
 };
 
@@ -78,7 +78,6 @@ export default function FormatForms() {
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Lista Formatów (Cięć):</h2>
 
-        {/* ✅ STAN: Renderujemy listę z globalnego stanu `cuts` */}
         {cuts.length === 0 ? (
           <p>Brak wprowadzonych elementów.</p>
         ) : (

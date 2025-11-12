@@ -1,79 +1,41 @@
+import { useState, useCallback, type ReactNode } from "react";
+import { AppContext } from "./app.context";
 import {
-  createContext,
-  useState,
-  useContext,
-  type ReactNode,
-  useCallback,
-} from "react";
-
-import { type CutoutFormValues } from "@/validations/cutSheetFormsValidation";
-import { type FormValues } from "@/validations/formatFormsValidation";
-
-const initialPlateValues: FormValues = {
-  length: 0,
-  width: 0,
-  margin: 0,
-  kerf: 0,
-};
-const initialCutoutValues: CutoutFormValues[] = [];
-
-export type AppContextType = {
-  plateParams: FormValues;
-  setPlateParams: (values: FormValues) => void;
-
-  cuts: CutoutFormValues[];
-  addCuts: (newCuts: CutoutFormValues[]) => void;
-  deleteCutout: (indexToDelete: number) => void;
-  resetCuts: () => void;
-};
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+  initialCutoutValues,
+  initialPlateValues,
+} from "@/constants/context.const";
+import type { CutoutFormValues } from "@/validations/cutSheetFormsValidation";
 
 type AppProviderProps = {
   children: ReactNode;
 };
 
 export const AppProvider = ({ children }: AppProviderProps) => {
-  const [plateParams, setPlateParams] =
-    useState<FormValues>(initialPlateValues);
-
-  const [cuts, setCuts] = useState<CutoutFormValues[]>(initialCutoutValues);
+  const [plateParams, setPlateParams] = useState(initialPlateValues);
+  const [cuts, setCuts] = useState(initialCutoutValues);
 
   const addCuts = useCallback((newCuts: CutoutFormValues[]) => {
-    setCuts((prevCuts) => [...prevCuts, ...newCuts]);
+    setCuts((prev) => [...prev, ...newCuts]);
   }, []);
 
   const deleteCutout = useCallback((indexToDelete: number) => {
-    setCuts((prevCuts) =>
-      prevCuts.filter((_, index) => index !== indexToDelete)
-    );
+    setCuts((prev) => prev.filter((_, i) => i !== indexToDelete));
   }, []);
 
-  const resetCuts = useCallback(() => {
-    setCuts([]);
-  }, []);
-
-  const contextValue: AppContextType = {
-    plateParams,
-    setPlateParams,
-
-    cuts,
-    addCuts,
-    deleteCutout,
-    resetCuts,
-  };
+  const resetCuts = useCallback(() => setCuts([]), []);
 
   return (
-    <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
+    <AppContext.Provider
+      value={{
+        plateParams,
+        setPlateParams,
+        cuts,
+        addCuts,
+        deleteCutout,
+        resetCuts,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
   );
-};
-
-export const useAppData = () => {
-  const context = useContext(AppContext);
-
-  if (context === undefined) {
-    throw new Error("useAppData must be used within an AppProvider");
-  }
-
-  return context;
 };

@@ -1,139 +1,75 @@
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 import {
   formatFormsValidation,
   type FormValues,
 } from "@/validations/formatFormsValidation";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "./ui/button/button";
-import { useAppData } from "@/context/DataContext";
 
+import { useAppData } from "@/context/DataContext";
+import { useState } from "react";
+import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 function FormatForms() {
-  const form = useForm<FormValues>({
-    resolver: yupResolver(formatFormsValidation),
-    defaultValues: {
-      length: 0,
-      width: 0,
-      margin: 0,
-      kerf: 0,
+  const [test, setTest] = useState("");
+  const initialValues: FormValues = {
+    length: 1,
+    width: 1,
+    margin: 1,
+    kerf: 1,
+  };
+
+  const mainBoardFields: FormFieldConfig<FormValues>[] = [
+    {
+      name: "length",
+      label: "Długość Płyty (mm)",
+      placeholder: "Wprowadź długość płyty",
+      type: "number",
     },
-  });
+    {
+      name: "width",
+      label: "Szerokość Płyty (mm)",
+      placeholder: "Wprowadź szerokość płyty",
+      type: "number",
+    },
+    {
+      name: "margin",
+      label: "Margines (mm)",
+      placeholder: "Wprowadź margines",
+      type: "number",
+    },
+    {
+      name: "kerf",
+      label: "Kerf (mm)",
+      placeholder: "Wprowadź kerf",
+      type: "number",
+    },
+  ];
 
   const { setPlateParams } = useAppData();
 
-  function onSubmit(values: FormValues) {
+  function onSubmit(
+    values: FormValues,
+    resetForm: (values?: FormValues) => void
+  ) {
     setPlateParams(values);
+    setTest(
+      "Wymiary płyty zostały ustawione na: " +
+        `Długość: ${values.length} mm, ` +
+        `Szerokość: ${values.width} mm, ` +
+        `Margines: ${values.margin} mm, ` +
+        `Kerf: ${values.kerf} mm.`
+    );
+    resetForm();
   }
 
   return (
     <>
-      <p className="font-bold text-lg mb-4">Parametry Płyty</p>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="p-4 border rounded-lg shadow-md space-y-4"
-        >
-          <FormField
-            control={form.control}
-            name="length"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Długość (mm)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Wprowadź długość"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <ReusableForm<FormValues>
+        title="Parametry Płyty Głównej"
+        defaultValues={initialValues}
+        validationSchema={formatFormsValidation}
+        onSubmit={onSubmit}
+        fields={mainBoardFields}
+      />
 
-          <FormField
-            control={form.control}
-            name="width"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Szerokość (mm)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Wprowadź szerokość"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="margin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Margines (mm)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Wprowadź margines"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="kerf"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Kerf (mm)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Wprowadź Kerf"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            variant="default"
-            type="submit"
-            className="w-full bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-          >
-            Oblicz i Zatwierdź
-          </Button>
-        </form>
-      </Form>
+      {test && <p className="mt-4 text-green-600">{test}</p>}
     </>
   );
 }
