@@ -24,6 +24,8 @@ export type FormFieldConfig<T extends FieldValues> = {
   label: string;
   placeholder: string;
   type: "number" | "text";
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
 };
 
 export type ReusableFormProps<T extends FieldValues> = {

@@ -3,11 +3,11 @@ import {
   type FormValues,
 } from "@/validations/formatFormsValidation";
 
-import { useAppData } from "@/context/DataContext";
 import { useState } from "react";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
+import { useAppData } from "@/context/useAppData.context";
 function FormatForms() {
-  const [test, setTest] = useState("");
+  const [message, setMessage] = useState("");
   const initialValues: FormValues = {
     length: 1,
     width: 1,
@@ -49,12 +49,12 @@ function FormatForms() {
     resetForm: (values?: FormValues) => void
   ) {
     setPlateParams(values);
-    setTest(
-      "Wymiary płyty zostały ustawione na: " +
-        `Długość: ${values.length} mm, ` +
-        `Szerokość: ${values.width} mm, ` +
-        `Margines: ${values.margin} mm, ` +
-        `Kerf: ${values.kerf} mm.`
+    setMessage(
+      `Wymiary płyty zostały ustawione na:  
+        Długość: ${values.length} mm,  
+        Szerokość: ${values.width} mm,  
+        Margines: ${values.margin} mm,  
+        Kerf: ${values.kerf} mm.`
     );
     resetForm();
   }
@@ -69,7 +69,7 @@ function FormatForms() {
         fields={mainBoardFields}
       />
 
-      {test && <p className="mt-4 text-green-600">{test}</p>}
+      {message && <p className="mt-4 text-green-600">{message}</p>}
     </>
   );
 }

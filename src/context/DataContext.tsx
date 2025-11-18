@@ -4,7 +4,7 @@ import {
   initialCutoutValues,
   initialPlateValues,
 } from "@/constants/context.const";
-import type { CutoutFormValues } from "@/validations/cutSheetFormsValidation";
+import type { CutoutFormValues } from "@/validations/cutSheetFormsSchema.ts";
 
 type AppProviderProps = {
   children: ReactNode;

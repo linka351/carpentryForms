@@ -1,16 +1,13 @@
-import { useAppData } from "./context/DataContext";
 import { MaxRectsPacker } from "maxrects-packer";
+import { useAppData } from "./context/useAppData.context";
 
 function CutPlan() {
   const { plateParams, cuts } = useAppData();
 
-  const margin = plateParams.margin;
-  const kerf = plateParams.kerf;
-  const plateWidth = plateParams.width;
-  const plateHeight = plateParams.length;
+  const { margin, kerf, width, length } = plateParams;
 
-  const workWidth = plateWidth - 2 * margin;
-  const workHeight = plateHeight - 2 * margin;
+  const workWidth = width - 2 * margin;
+  const workHeight = length - 2 * margin;
 
   const packer = new MaxRectsPacker(workWidth, workHeight, kerf, {
     smart: false,
@@ -20,14 +17,14 @@ function CutPlan() {
   });
 
   cuts
-    .sort((a, b) => Math.max(b.width, b.length) - Math.max(a.width, a.length))
-    .forEach((cut) => {
+    .toSorted(
+      (a, b) => Math.max(b.width, b.length) - Math.max(a.width, a.length)
+    )
+    .forEach(({ width, length, describe }) => {
       packer.add(
-        cut.width,
-        cut.length,
-        cut.describe
-          ? `${cut.describe} (${cut.width}×${cut.length})`
-          : `${cut.width}×${cut.length}`
+        width,
+        length,
+        describe ? `${describe} (${width}×${length})` : `${width}×${length}`
       );
     });
 
@@ -40,7 +37,7 @@ function CutPlan() {
 
     const totalArea = workWidth * workHeight;
     const usagePercent = ((usedArea / totalArea) * 100).toFixed(2);
-    return { usedArea, totalArea, usagePercent };
+    return { usagePercent };
   });
 
   return (
@@ -48,11 +45,10 @@ function CutPlan() {
       {packer.bins.map((bin, binIndex) => (
         <div key={binIndex} className="mb-10">
           <div
-            className="relative m-5 border-2 border-black box-border"
+            className="relative m-5 border-2 border-black box-border box-content"
             style={{
-              width: plateWidth,
-              height: plateHeight,
-              boxSizing: "content-box",
+              width: width,
+              height: length,
             }}
           >
             <div
@@ -65,15 +61,15 @@ function CutPlan() {
               }}
             >
               {bin.rects.map((rect, idx) => (
+                //"TODO: zastąpić idx na id"
                 <div
                   key={idx}
-                  className="absolute flex items-center justify-center text-[8px] text-center bg-blue-500/30"
+                  className="absolute flex items-center justify-center text-[8px] text-center bg-blue-500/30 box-content border "
                   style={{
                     left: rect.x,
                     top: rect.y,
                     width: rect.width,
                     height: rect.height,
-                    boxSizing: "content-box",
                   }}
                 >
                   {rect.data}

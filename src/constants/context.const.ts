@@ -1,4 +1,4 @@
-import { type CutoutFormValues } from "../validations/cutSheetFormsValidation";
+import { type CutoutFormValues } from "../validations/cutSheetFormsSchema.ts";
 import { type FormValues } from "../validations/formatFormsValidation";
 
 export const initialPlateValues: FormValues = {

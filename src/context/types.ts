@@ -1,5 +1,5 @@
 import type { FormValues } from "@/validations/formatFormsValidation";
-import type { CutoutFormValues } from "@/validations/cutSheetFormsValidation";
+import type { CutoutFormValues } from "@/validations/cutSheetFormsSchema.ts";
 
 export type AppContextType = {
   plateParams: FormValues;

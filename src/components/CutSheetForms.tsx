@@ -1,10 +1,18 @@
-import {
-  cutSheetFormsValidation,
-  type CutoutFormValues,
-} from "@/validations/cutSheetFormsValidation";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
-
-import { useAppData } from "../context/use.app.data.context";
+import { useAppData } from "../context/useAppData.context";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
+import {
+  cutSheetFormsSchema,
+  type CutoutFormValues,
+} from "../validations/cutSheetFormsSchema.ts";
+import { Button } from "./ui/button/button";
 
 const initialCutSheetValues: CutoutFormValues = {
   length: 1,
@@ -48,17 +56,11 @@ export default function FormatForms() {
     resetForm: (values?: CutoutFormValues) => void
   ) {
     const quantity = values.quanity;
-
     const elementsToAdd: CutoutFormValues[] = Array.from(
       { length: quantity },
-      () => ({
-        ...values,
-        quanity: 1,
-      })
+      () => ({ ...values, quanity: 1 })
     );
-
     addCuts(elementsToAdd);
-
     resetForm(initialCutSheetValues);
   }
 
@@ -71,57 +73,47 @@ export default function FormatForms() {
       <ReusableForm<CutoutFormValues>
         title="Parametry Formatki"
         defaultValues={initialCutSheetValues}
-        validationSchema={cutSheetFormsValidation}
+        validationSchema={cutSheetFormsSchema}
         onSubmit={handleMainBoardSubmit}
         fields={mainBoardFields}
       />
+
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Lista Formatów (Cięć):</h2>
 
         {cuts.length === 0 ? (
           <p>Brak wprowadzonych elementów.</p>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200 border">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Opis
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Długość (mm)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Szerokość (mm)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ilość
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Akcje
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead>Opis</TableHead>
+                <TableHead>Długość (mm)</TableHead>
+                <TableHead>Szerokość (mm)</TableHead>
+                <TableHead>Ilość</TableHead>
+                <TableHead>Akcje</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {cuts.map((cut, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {cut.describe}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{cut.length}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{cut.width}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{cut.quanity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
+                <TableRow key={index}>
+                  <TableCell>{cut.describe}</TableCell>
+                  <TableCell>{cut.length}</TableCell>
+                  <TableCell>{cut.width}</TableCell>
+                  <TableCell>{cut.quanity}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={() => handleDeleteCutout(index)}
-                      className="text-red-600 hover:text-red-900 font-medium"
                     >
                       Usuń
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </>
