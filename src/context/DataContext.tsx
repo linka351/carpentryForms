@@ -1,28 +1,44 @@
 import { useState, useCallback, type ReactNode } from "react";
 import { AppContext } from "./app.context";
+import { type CutoutItem, type PlateParams } from "./types";
 import {
-  initialCutoutValues,
+  initialCutoutItemValues,
   initialPlateValues,
 } from "@/constants/context.const";
-import type { CutoutFormValues } from "@/validations/cutSheetFormsSchema.ts";
 
 type AppProviderProps = {
   children: ReactNode;
 };
 
 export const AppProvider = ({ children }: AppProviderProps) => {
-  const [plateParams, setPlateParams] = useState(initialPlateValues);
-  const [cuts, setCuts] = useState(initialCutoutValues);
+  const [plateParams, setPlateParams] =
+    useState<PlateParams>(initialPlateValues);
+  const [cuts, setCuts] = useState<CutoutItem[]>(initialCutoutItemValues);
 
-  const addCuts = useCallback((newCuts: CutoutFormValues[]) => {
-    setCuts((prev) => [...prev, ...newCuts]);
-  }, []);
+  const addCuts = useCallback(
+    (newCuts: Omit<CutoutItem, "id" | "rotated">[]) => {
+      const cutsWithId: CutoutItem[] = newCuts.map((c) => ({
+        ...c,
+        id: crypto.randomUUID(),
+        rotated: false,
+      }));
+      setCuts((prev) => [...prev, ...cutsWithId]);
+    },
+    []
+  );
 
-  const deleteCutout = useCallback((indexToDelete: number) => {
-    setCuts((prev) => prev.filter((_, i) => i !== indexToDelete));
+  const deleteCutout = useCallback((index: number) => {
+    setCuts((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const resetCuts = useCallback(() => setCuts([]), []);
+
+  const updateCut = useCallback(
+    (updater: (prev: CutoutItem[]) => CutoutItem[]) => {
+      setCuts((prev) => updater(prev));
+    },
+    []
+  );
 
   return (
     <AppContext.Provider
@@ -33,6 +49,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         addCuts,
         deleteCutout,
         resetCuts,
+        updateCut,
       }}
     >
       {children}

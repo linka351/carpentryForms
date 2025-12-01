@@ -1,3 +1,4 @@
+import type { CutoutItem } from "@/context/types.ts";
 import { type CutoutFormValues } from "../validations/cutSheetFormsSchema.ts";
 import { type FormValues } from "../validations/formatFormsValidation";
 
@@ -9,3 +10,5 @@ export const initialPlateValues: FormValues = {
 };
 
 export const initialCutoutValues: CutoutFormValues[] = [];
+
+export const initialCutoutItemValues: CutoutItem[] = [];
