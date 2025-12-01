@@ -6,7 +6,7 @@ import {
 import { useState } from "react";
 import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
 import { useAppData } from "@/context/useAppData.context";
-function FormatForms() {
+export default function FormatForms() {
   const [message, setMessage] = useState("");
   const initialValues: FormValues = {
     length: 1,
@@ -73,5 +73,3 @@ function FormatForms() {
     </>
   );
 }
-
-export default FormatForms;

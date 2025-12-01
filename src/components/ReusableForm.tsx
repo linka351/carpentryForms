@@ -1,9 +1,9 @@
 import {
   useForm,
   type FieldValues,
-  type Path,
   type Resolver,
   type DefaultValues,
+  type Path,
 } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -32,7 +32,7 @@ export type ReusableFormProps<T extends FieldValues> = {
   defaultValues: T;
   validationSchema: yup.ObjectSchema<T>;
   onSubmit: (values: T, resetForm: (values?: T) => void) => void;
-  fields: FormFieldConfig<T>[];
+  fields?: FormFieldConfig<T>[];
   title: string;
 };
 
@@ -40,7 +40,7 @@ function ReusableForm<T extends FieldValues>({
   defaultValues,
   validationSchema,
   onSubmit,
-  fields,
+  fields = [],
   title,
 }: ReusableFormProps<T>) {
   const form = useForm<T>({
@@ -77,7 +77,7 @@ function ReusableForm<T extends FieldValues>({
                         if (fieldConfig.type === "number") {
                           field.onChange(parseFloat(e.target.value) || 0);
                         } else {
-                          field.onChange(e.target.value as string);
+                          field.onChange(e.target.value);
                         }
                       }}
                     />
