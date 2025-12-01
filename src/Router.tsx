@@ -1,14 +1,19 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import FormatForms from "./components/FormatForms";
+import CutPlan from "./CutPlan";
+import App from "./App";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <FormatForms />,
+    element: <App />,
   },
   {
     path: "/main",
     element: <div>Main</div>,
+  },
+  {
+    path: "/cut-plan",
+    element: <CutPlan />,
   },
 ]);
 

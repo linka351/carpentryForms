@@ -1,6 +1,6 @@
 import * as Yup from "yup";
 
-export const cutSheetFormsValidation = Yup.object({
+export const cutSheetFormsSchema = Yup.object({
   length: Yup.number()
     .min(1, "Długość musi być większa niż 0")
     .required("Długość jest wymagana"),
@@ -14,6 +14,4 @@ export const cutSheetFormsValidation = Yup.object({
   describe: Yup.string(),
 });
 
-export type CutoutFormValues = Yup.InferType<typeof cutSheetFormsValidation>;
-
-export type Cutout = CutoutFormValues & { id: number };
+export type CutoutFormValues = Yup.InferType<typeof cutSheetFormsSchema>;

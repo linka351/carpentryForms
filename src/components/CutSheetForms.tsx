@@ -1,16 +1,23 @@
+import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
+import { useAppData } from "../context/useAppData.context";
 import {
-  cutSheetFormsValidation,
-  type Cutout,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
+import {
+  cutSheetFormsSchema,
   type CutoutFormValues,
-} from "@/validations/cutSheetFormsValidation";
-import ReusableForm from "./ReusableForm";
-import type { FormFieldConfig } from "./formFieldConfig";
-import { useRef, useState } from "react";
+} from "../validations/cutSheetFormsSchema.ts";
+import { Button } from "./ui/button/button";
 
 const initialCutSheetValues: CutoutFormValues = {
-  length: 0,
-  width: 0,
-  quanity: 0,
+  length: 1,
+  width: 1,
+  quanity: 1,
   describe: "",
 };
 
@@ -41,35 +48,24 @@ const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
   },
 ];
 
-export default function CutSheetForms() {
-  const [cuts, setCuts] = useState<Cutout[]>([]);
-  const idCounter = useRef(0);
-
-  const tableClass = "min-w-full divide-y divide-gray-200 border";
-  const theadClass = "bg-gray-50";
-  const thClass =
-    "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
-  const tdClass = "px-6 py-4 whitespace-nowrap";
-  const deleteButtonClass = "text-red-600 hover:text-red-900 font-medium";
+export default function FormatForms() {
+  const { cuts, addCuts, deleteCutout } = useAppData();
 
   function handleMainBoardSubmit(
     values: CutoutFormValues,
     resetForm: (values?: CutoutFormValues) => void
   ) {
     const quantity = values.quanity;
-
-    const elementsToAdd: Cutout[] = Array.from({ length: quantity }, () => ({
-      ...values,
-      quanity: 1,
-      id: idCounter.current++,
-    }));
-
-    setCuts((prevCuts) => [...prevCuts, ...elementsToAdd]);
+    const elementsToAdd: CutoutFormValues[] = Array.from(
+      { length: quantity },
+      () => ({ ...values, quanity: 1 })
+    );
+    addCuts(elementsToAdd);
     resetForm(initialCutSheetValues);
   }
 
-  const handleDeleteCutout = (id: number) => {
-    setCuts((prevCuts) => prevCuts.filter((cut) => cut.id !== id));
+  const handleDeleteCutout = (indexToDelete: number) => {
+    deleteCutout(indexToDelete);
   };
 
   return (
@@ -77,41 +73,49 @@ export default function CutSheetForms() {
       <ReusableForm<CutoutFormValues>
         title="Parametry Formatki"
         defaultValues={initialCutSheetValues}
-        validationSchema={cutSheetFormsValidation}
+        validationSchema={cutSheetFormsSchema}
         onSubmit={handleMainBoardSubmit}
         fields={mainBoardFields}
       />
-      {cuts.length > 0 && (
-        <table className={tableClass}>
-          <thead className={theadClass}>
-            <tr>
-              <th className={thClass}>Opis</th>
-              <th className={thClass}>Długość (mm)</th>
-              <th className={thClass}>Szerokość (mm)</th>
-              <th className={thClass}>Ilość</th>
-              <th className={thClass}>Akcje</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {cuts.map((cut) => (
-              <tr key={cut.id}>
-                <td className={tdClass}>{cut.describe}</td>
-                <td className={tdClass}>{cut.length}</td>
-                <td className={tdClass}>{cut.width}</td>
-                <td className={tdClass}>{cut.quanity}</td>
-                <td className={tdClass}>
-                  <button
-                    onClick={() => handleDeleteCutout(cut.id)}
-                    className={deleteButtonClass}
-                  >
-                    Usuń
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Lista Formatów (Cięć):</h2>
+
+        {cuts.length === 0 ? (
+          <p>Brak wprowadzonych elementów.</p>
+        ) : (
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead>Opis</TableHead>
+                <TableHead>Długość (mm)</TableHead>
+                <TableHead>Szerokość (mm)</TableHead>
+                <TableHead>Ilość</TableHead>
+                <TableHead>Akcje</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cuts.map((cut, index) => (
+                <TableRow key={index}>
+                  <TableCell>{cut.describe}</TableCell>
+                  <TableCell>{cut.length}</TableCell>
+                  <TableCell>{cut.width}</TableCell>
+                  <TableCell>{cut.quanity}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteCutout(index)}
+                    >
+                      Usuń
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </>
   );
 }

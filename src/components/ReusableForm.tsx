@@ -3,6 +3,7 @@ import {
   type FieldValues,
   type Resolver,
   type DefaultValues,
+  type Path,
 } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -17,7 +18,15 @@ import {
 } from "@/components/ui/form/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button/button";
-import type { FormFieldConfig } from "./formFieldConfig";
+
+export type FormFieldConfig<T extends FieldValues> = {
+  name: Path<T>;
+  label: string;
+  placeholder: string;
+  type: "number" | "text";
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
+};
 
 export type ReusableFormProps<T extends FieldValues> = {
   defaultValues: T;
