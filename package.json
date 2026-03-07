@@ -1,4 +1,5 @@
 {
+  "homepage": "https://linka351.github.io/carpentryForms",
   "name": "carpentry-forms",
   "private": true,
   "version": "0.0.0",
@@ -10,6 +11,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -61,6 +64,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
+    "gh-pages": "^6.3.0",
     "globals": "^16.4.0",
     "lint-staged": "^16.2.3",
     "typescript": "~5.9.3",
