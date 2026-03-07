@@ -1,8 +1,9 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createHashRouter, RouterProvider } from "react-router-dom";
 import CutPlan from "./CutPlan";
 import App from "./App";
 
-const router = createBrowserRouter([
+// Używamy createHashRouter zamiast HashRouter jako funkcji
+const router = createHashRouter([
   {
     path: "/",
     element: <App />,
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
 ]);
 
 function Router() {
+  /* RouterProvider przekazuje konfigurację routera do aplikacji */
   return <RouterProvider router={router} />;
 }
 
