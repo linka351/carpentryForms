@@ -1,75 +1,49 @@
+import { useState } from "react";
+import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
+import { useAppData } from "@/context/useAppData.context";
 import {
   formatFormsValidation,
   type FormValues,
 } from "@/validations/formatFormsValidation";
 
-import { useState } from "react";
-import ReusableForm, { type FormFieldConfig } from "./ReusableForm";
-import { useAppData } from "@/context/useAppData.context";
 export default function FormatForms() {
   const [message, setMessage] = useState("");
+  const { setPlateParams } = useAppData();
+
   const initialValues: FormValues = {
-    length: 1,
-    width: 1,
-    margin: 1,
-    kerf: 1,
+    length: 2800,
+    width: 2070,
+    margin: 10,
+    kerf: 4,
   };
 
   const mainBoardFields: FormFieldConfig<FormValues>[] = [
-    {
-      name: "length",
-      label: "Długość Płyty (mm)",
-      placeholder: "Wprowadź długość płyty",
-      type: "number",
-    },
-    {
-      name: "width",
-      label: "Szerokość Płyty (mm)",
-      placeholder: "Wprowadź szerokość płyty",
-      type: "number",
-    },
-    {
-      name: "margin",
-      label: "Margines (mm)",
-      placeholder: "Wprowadź margines",
-      type: "number",
-    },
-    {
-      name: "kerf",
-      label: "Kerf (mm)",
-      placeholder: "Wprowadź kerf",
-      type: "number",
-    },
+    { name: "length", label: "Długość Płyty (mm)", type: "number" },
+    { name: "width", label: "Szerokość Płyty (mm)", type: "number" },
+    { name: "margin", label: "Margines (mm)", type: "number" },
+    { name: "kerf", label: "Rzaz (mm)", type: "number" },
   ];
 
-  const { setPlateParams } = useAppData();
-
-  function onSubmit(
-    values: FormValues,
-    resetForm: (values?: FormValues) => void
-  ) {
+  function onSubmit(values: FormValues) {
     setPlateParams(values);
-    setMessage(
-      `Wymiary płyty zostały ustawione na:  
-        Długość: ${values.length} mm,  
-        Szerokość: ${values.width} mm,  
-        Margines: ${values.margin} mm,  
-        Kerf: ${values.kerf} mm.`
-    );
-    resetForm();
+    setMessage("✔️ Parametry płyty zapisane!");
+    setTimeout(() => setMessage(""), 3000);
   }
 
   return (
-    <>
+    <div className="w-full">
       <ReusableForm<FormValues>
-        title="Parametry Płyty Głównej"
+        title="Płyta Główna"
         defaultValues={initialValues}
         validationSchema={formatFormsValidation}
         onSubmit={onSubmit}
         fields={mainBoardFields}
       />
-
-      {message && <p className="mt-4 text-green-600">{message}</p>}
-    </>
+      {message && (
+        <p className="mt-2 text-[10px] font-black text-green-600 uppercase tracking-widest px-2">
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

@@ -12,6 +12,13 @@ export const cutSheetFormsSchema = Yup.object({
   quanity: Yup.number().min(1, "minimum 1 formatka").required("Pole wymagane"),
 
   describe: Yup.string(),
+  isLocked: Yup.boolean(),
+  edges: Yup.object({
+    top: Yup.boolean(),
+    right: Yup.boolean(),
+    bottom: Yup.boolean(),
+    left: Yup.boolean(),
+  }),
 });
 
 export type CutoutFormValues = Yup.InferType<typeof cutSheetFormsSchema>;
