@@ -172,18 +172,102 @@ export default function CutSheetForms({
                             className="flex flex-col items-center group cursor-pointer px-1"
                           >
                             <input
-                              type="radio"
+                              type="checkbox"
                               name={`edge-group-${gIdx}`}
-                              checked={group.edgePattern === opt.value}
+                              // Sprawdzamy czy dany wzór jest w tablicy
+                              checked={(group.edgePattern || []).includes(
+                                opt.value,
+                              )}
                               className="w-4 h-4 accent-blue-600"
                               onChange={() => {
-                                const newEdges = applyEdgePattern(
-                                  opt.value,
-                                  group.length,
-                                  group.width,
+                                const currentPatterns: string[] =
+                                  group.edgePattern || [];
+                                const clickedValue = opt.value;
+                                let nextPatterns: string[];
+
+                                // --- 1. Obsługa ORAZ (O) i (X) ---
+                                if (
+                                  clickedValue === "O" ||
+                                  clickedValue === "X"
+                                ) {
+                                  nextPatterns = [clickedValue];
+                                } else {
+                                  // Usuwamy O i X, bo wybieramy konkretne boki
+                                  let tempPatterns = currentPatterns.filter(
+                                    (p) => p !== "O" && p !== "X",
+                                  );
+
+                                  // --- 2. Logika "Toggle" z zależnościami ---
+                                  if (tempPatterns.includes(clickedValue)) {
+                                    // ODZNACZAMY
+                                    tempPatterns = tempPatterns.filter(
+                                      (p) => p !== clickedValue,
+                                    );
+
+                                    // Zależność w dół: jeśli odznaczysz 1D, usuń też 2D
+                                    if (clickedValue === "1D")
+                                      tempPatterns = tempPatterns.filter(
+                                        (p) => p !== "2D",
+                                      );
+                                    if (clickedValue === "1K")
+                                      tempPatterns = tempPatterns.filter(
+                                        (p) => p !== "2K",
+                                      );
+                                  } else {
+                                    // ZAZNACZAMY
+                                    tempPatterns.push(clickedValue);
+
+                                    // Zależność w górę: jeśli zaznaczysz 2D, automatycznie zaznacz też 1D
+                                    if (
+                                      clickedValue === "2D" &&
+                                      !tempPatterns.includes("1D")
+                                    )
+                                      tempPatterns.push("1D");
+                                    if (
+                                      clickedValue === "2K" &&
+                                      !tempPatterns.includes("1K")
+                                    )
+                                      tempPatterns.push("1K");
+                                  }
+
+                                  nextPatterns = tempPatterns;
+                                }
+
+                                // Jeśli wszystko odznaczone, wróć do "X"
+                                if (nextPatterns.length === 0) {
+                                  nextPatterns = ["X"];
+                                }
+
+                                // --- 3. Obliczanie końcowych krawędzi (Suma logiczna) ---
+                                const combinedEdges = nextPatterns.reduce(
+                                  (acc, pattern) => {
+                                    const patternEdges = applyEdgePattern(
+                                      pattern,
+                                      group.length,
+                                      group.width,
+                                    );
+                                    return {
+                                      top: acc.top || patternEdges.top,
+                                      right: acc.right || patternEdges.right,
+                                      bottom: acc.bottom || patternEdges.bottom,
+                                      left: acc.left || patternEdges.left,
+                                    };
+                                  },
+                                  {
+                                    top: false,
+                                    right: false,
+                                    bottom: false,
+                                    left: false,
+                                  },
                                 );
+
+                                // --- 4. Aktualizacja stanu ---
                                 group.indices.forEach((idx) =>
-                                  updateCutEdges(idx, newEdges, opt.value),
+                                  updateCutEdges(
+                                    idx,
+                                    combinedEdges,
+                                    nextPatterns,
+                                  ),
                                 );
                               }}
                             />

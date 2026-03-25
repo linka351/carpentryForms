@@ -37,7 +37,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       ...cut,
       isLocked: false,
       edgePattern: "O",
-      edges: { top: false, right: false, bottom: false, left: false },
+      edges: { top: true, right: true, bottom: true, left: true },
     }));
     setCuts((prev) => [...prev, ...cutsWithDefaults]);
   }, []);

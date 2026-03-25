@@ -46,9 +46,9 @@ export const applyEdgePattern = (
       break;
 
     case "X":
-      return { top: true, right: true, bottom: true, left: true };
-    case "O":
       return { top: false, right: false, bottom: false, left: false };
+    case "O":
+      return { top: true, right: true, bottom: true, left: true };
     default:
       return edges;
   }
