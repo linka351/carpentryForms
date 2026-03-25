@@ -13,8 +13,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [cuts, setCuts] = useState<ExtendedCutoutValues[]>(
     initialCutoutValues.map((cut) => ({
       ...cut,
+      edgePattern: ["O"], // ZMIANA: Tablica zamiast stringa
       isLocked: false,
-      edgePattern: "O",
       edges: { top: false, right: false, bottom: false, left: false },
     })),
   );
@@ -36,7 +36,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const cutsWithDefaults = newCuts.map((cut) => ({
       ...cut,
       isLocked: false,
-      edgePattern: "O",
+      edgePattern: ["O"], // ZMIANA: Tablica zamiast stringa
       edges: { top: true, right: true, bottom: true, left: true },
     }));
     setCuts((prev) => [...prev, ...cutsWithDefaults]);
@@ -50,7 +50,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           i === index
             ? {
                 ...cut,
-                edgePattern: "custom", // Resetujemy wzór, bo użytkownik zmienił go ręcznie
+                edgePattern: ["custom"], // ZMIANA: Tablica zamiast stringa
                 edges: { ...cut.edges, [edge]: !cut.edges[edge] },
               }
             : cut,
@@ -60,16 +60,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
-  // AKTUALIZACJA KRAWĘDZI (cały wzór - Radio w tabeli)
+  // AKTUALIZACJA KRAWĘDZI (cały wzór - Checkboxy w tabeli)
   const updateCutEdges = useCallback(
     (
       index: number,
       newEdges: ExtendedCutoutValues["edges"],
-      pattern: string,
+      patterns: string[], // ZMIANA: Typ string[] zamiast string
     ) => {
       setCuts((prev) =>
         prev.map((cut, i) =>
-          i === index ? { ...cut, edges: newEdges, edgePattern: pattern } : cut,
+          i === index
+            ? { ...cut, edges: newEdges, edgePattern: patterns }
+            : cut,
         ),
       );
     },
@@ -86,7 +88,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return prev.map((c, i) => {
           if (i !== indexToRotate) return c;
 
-          // Obracamy fizyczne krawędzie o 90 stopni
           const rotatedEdges = {
             top: c.edges.left,
             right: c.edges.top,
@@ -96,12 +97,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
           return {
             ...c,
-            width: c.length, // Zamiana wymiarów mm
+            width: c.length,
             length: c.width,
             edges: rotatedEdges,
-            // Kluczowe: zostawiamy ten sam wzór (np. "1D"),
-            // bo długi bok to wciąż długi bok!
-            edgePattern: c.edgePattern,
+            edgePattern: c.edgePattern, // Tu zostaje tablica, więc jest OK
           };
         });
       });
