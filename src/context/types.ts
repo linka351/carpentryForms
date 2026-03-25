@@ -21,13 +21,13 @@ export type AppContextType = {
   updateCutEdges: (
     index: number,
     edges: ExtendedCutoutValues["edges"],
-    pattern: string,
+    pattern: string[],
   ) => void;
 };
 
 export interface ExtendedCutoutValues extends CutoutFormValues {
   isLocked: boolean;
-  edgePattern: string; // Przechowuje informację o wybranym Radio (np. "1D", "2K")
+  edgePattern: string[]; // Przechowuje informację o wybranym Radio (np. "1D", "2K")
   edges: {
     top: boolean;
     right: boolean;
