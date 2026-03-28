@@ -28,18 +28,22 @@ function CutPlan() {
   const contentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Skalowanie
-  const screenScale = 520 / width;
-  const printScale = 720 / width;
+  // --- SKALOWANIE ---
+  const screenScale = 400 / width;
 
-  const workWidth = width - 2 * margin;
-  const workHeight = length - 2 * margin;
+  // Twarde wymiary dla wydruku A4 (z marginesem bezpieczeństwa)
+  const MAX_PRINT_WIDTH_MM = 190;
+  const MAX_PRINT_HEIGHT_MM = 270;
+  const printScale = Math.min(
+    MAX_PRINT_WIDTH_MM / width,
+    MAX_PRINT_HEIGHT_MM / length,
+  );
 
+  // Funkcja drukująca - przywrócona działająca wersja
   const reactToPrintFn = useReactToPrint({
     documentTitle: `Plan_Ciecia_${new Date().toISOString().slice(0, 10)}`,
   });
 
-  // ALGORYTM PÓŁKOWY (SHELF) - Najlepszy do gilotyny i maksymalnego ścisku
   const { packedBins, stats } = useMemo(() => {
     let itemsToPack = cuts
       .map((cut, index) => ({
@@ -52,12 +56,13 @@ function CutPlan() {
 
     let bins: PackedItem[][] = [];
     let currentBin: PackedItem[] = [];
-    let shelfX = 0;
-    let shelfY = 0;
-    let shelfHeight = 0;
+    let shelfX = 0,
+      shelfY = 0,
+      shelfHeight = 0;
+    const workWidth = width - 2 * margin;
+    const workHeight = length - 2 * margin;
 
     itemsToPack.forEach((item) => {
-      // Czy wejdzie w aktualny rządek?
       if (shelfX + item.w <= workWidth && shelfY + item.h <= workHeight) {
         currentBin.push({
           x: shelfX,
@@ -69,9 +74,7 @@ function CutPlan() {
         });
         shelfX += item.w + kerf;
         shelfHeight = Math.max(shelfHeight, item.h);
-      }
-      // Czy nowa półka na tej samej płycie?
-      else if (shelfY + shelfHeight + kerf + item.h <= workHeight) {
+      } else if (shelfY + shelfHeight + kerf + item.h <= workHeight) {
         shelfY += shelfHeight + kerf;
         shelfX = 0;
         shelfHeight = item.h;
@@ -84,209 +87,263 @@ function CutPlan() {
           data: item.label,
         });
         shelfX += item.w + kerf;
-      }
-      // Nowa płyta
-      else {
+      } else {
         if (currentBin.length > 0) bins.push(currentBin);
-        currentBin = [];
-        shelfX = 0;
+        currentBin = [
+          {
+            x: 0,
+            y: 0,
+            w: item.w,
+            h: item.h,
+            originalIndex: item.originalIndex,
+            data: item.label,
+          },
+        ];
+        shelfX = item.w + kerf;
         shelfY = 0;
         shelfHeight = item.h;
-        currentBin.push({
-          x: shelfX,
-          y: shelfY,
-          w: item.w,
-          h: item.h,
-          originalIndex: item.originalIndex,
-          data: item.label,
-        });
-        shelfX += item.w + kerf;
       }
     });
-
     if (currentBin.length > 0) bins.push(currentBin);
 
     return {
       packedBins: bins,
       stats: bins.map((bin) => ({
         efficiency:
-          (bin.reduce((acc, item) => acc + item.w * item.h, 0) /
-            (workWidth * workHeight)) *
+          (bin.reduce(
+            (acc: number, item: PackedItem) => acc + item.w * item.h,
+            0,
+          ) /
+            (width * length)) *
           100,
       })),
     };
-  }, [cuts, workWidth, workHeight, kerf]);
+  }, [cuts, width, length, margin, kerf]);
+
+  const formattedOkleina = (totalEdgeLength / 1000).toFixed(2);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
+    <div className="p-4 bg-slate-100 min-h-screen">
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        @page { 
+          size: A4 portrait; 
+          margin: 0mm; /* Brak nagłówków przeglądarki z adresami URL */
+        }
         @media print {
           .no-print { display: none !important; }
-          .print-sheet { 
-            width: ${width * printScale}px !important; 
-            height: ${length * printScale}px !important; 
-            page-break-after: always;
-            margin: 0 !important;
-            border: 1px solid black !important;
+          body, html { background: white !important; padding: 0 !important; margin: 0 !important; }
+          
+          .print-container { 
+            width: 100% !important; 
+            padding: 10mm !important; 
+          }
+          
+          .arkusz-page {
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+            display: block;
+            width: 100%;
+            margin-bottom: 0 !important;
+          }
+          
+          .arkusz-page:last-child {
+            page-break-after: auto !important; 
+          }
+
+          .plate-box { 
+            width: ${width * printScale}mm !important; 
+            height: ${length * printScale}mm !important; 
+            margin: 0 auto !important;
           }
         }
       `,
         }}
       />
 
-      <div className="max-w-5xl mx-auto flex flex-col gap-6 no-print">
-        {/* PANEL STEROWANIA I STATYSTYKI */}
-        <div className="flex justify-between items-center">
+      {/* PANEL EKRANOWY */}
+      <div className="max-w-5xl mx-auto flex flex-col gap-4 no-print mb-6">
+        <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 bg-white border border-slate-300 rounded shadow-sm font-bold"
+            className="px-4 py-2 hover:bg-slate-100 rounded-lg font-bold border border-slate-300 text-sm"
           >
-            ⬅ Wróć
+            ⬅ Wstecz
           </button>
 
-          <div className="flex gap-4">
-            <div className="bg-white p-3 rounded border-b-4 border-blue-500 text-center min-w-[80px]">
-              <p className="text-[10px] text-gray-400 font-bold uppercase">
-                Płyty
-              </p>
-              <p className="text-xl font-black">{packedBins.length}</p>
-            </div>
-            <div className="bg-white p-3 rounded border-b-4 border-green-500 text-center min-w-[80px]">
-              <p className="text-[10px] text-gray-400 font-bold uppercase">
-                Wydajność
-              </p>
-              <p className="text-xl font-black">
-                {(
-                  stats.reduce((a, b) => a + b.efficiency, 0) /
-                  (stats.length || 1)
-                ).toFixed(1)}
-                %
-              </p>
-            </div>
-            <div className="bg-white p-3 rounded border-b-4 border-orange-500 text-center min-w-[80px]">
-              <p className="text-[10px] text-gray-400 font-bold uppercase">
-                Okleina
-              </p>
-              <p className="text-xl font-black">
-                {(totalEdgeLength / 1000).toFixed(1)}m
-              </p>
-            </div>
+          <div className="flex gap-6 text-sm font-black uppercase text-slate-700">
+            <span>
+              Wydajność:{" "}
+              <span className="text-green-600">
+                {(stats[0]?.efficiency || 0).toFixed(1)}%
+              </span>
+            </span>
+            <span>
+              Okleina:{" "}
+              <span className="text-orange-500">{formattedOkleina}m</span>
+            </span>
           </div>
 
           <button
             onClick={() => reactToPrintFn(() => contentRef.current)}
-            className="px-6 py-2 bg-blue-600 text-white rounded font-bold shadow-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 text-sm"
           >
-            Drukuj
+            DRUKUJ
           </button>
         </div>
+      </div>
 
-        {/* WIZUALIZACJA */}
-        <div ref={contentRef} className="flex flex-col gap-10 items-center">
-          {packedBins.map((bin, bIdx) => (
+      {/* OBSZAR WYDRUKU */}
+      <div
+        ref={contentRef}
+        className="print-container mx-auto flex flex-col items-center bg-white"
+      >
+        {packedBins.map((bin, bIdx) => (
+          <div
+            key={bIdx}
+            className="arkusz-page w-full flex flex-col items-center mb-10 print:mb-0"
+          >
+            {/* Nagłówek raportu */}
             <div
-              key={bIdx}
-              className="print-sheet relative bg-white border border-slate-300 shadow-xl"
+              className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end"
+              style={{ width: width * screenScale, maxWidth: "100%" }}
+            >
+              <div>
+                <h2 className="text-xl font-black uppercase leading-none mb-1">
+                  PLAN CIĘCIA
+                </h2>
+                <p className="text-[10px] font-bold text-slate-700">
+                  Arkusz: #{bIdx + 1} | {width}x{length}mm | Margines: {margin}
+                  mm
+                </p>
+              </div>
+              <div className="flex gap-4 text-right">
+                <div>
+                  <p className="text-[9px] font-black uppercase leading-none">
+                    Wydajność
+                  </p>
+                  <p className="text-sm font-black">
+                    {stats[bIdx].efficiency.toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase leading-none">
+                    Suma Okleiny
+                  </p>
+                  <p className="text-sm font-black">{formattedOkleina} mb</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Płyta z formatkami */}
+            <div
+              className="plate-box relative bg-white border-2 border-black mx-auto"
               style={{
                 width: width * screenScale,
                 height: length * screenScale,
               }}
             >
-              <p className="absolute -top-5 left-0 text-[10px] font-bold text-slate-400 uppercase no-print">
-                Arkusz #{bIdx + 1} | Wydajność:{" "}
-                {stats[bIdx].efficiency.toFixed(1)}%
-              </p>
-
+              {/* overflow-hidden ucina nadmiarowe wizualne rozciągnięcie kerfu przy krawędziach */}
               <div
-                className="relative"
-                style={{
-                  top: margin * screenScale,
-                  left: margin * screenScale,
-                }}
+                className="relative h-full w-full overflow-hidden"
+                style={{ padding: `${(margin / width) * 100}%` }}
               >
-                {bin.map((rect) => {
-                  const cutData = cuts[rect.originalIndex];
-                  return (
-                    <div
-                      key={rect.originalIndex}
-                      className="absolute border border-black bg-white flex flex-col items-center justify-center overflow-hidden group cursor-pointer"
-                      style={{
-                        left: rect.x * screenScale,
-                        top: rect.y * screenScale,
-                        width: rect.w * screenScale,
-                        height: rect.h * screenScale,
-                      }}
-                      onClick={() =>
-                        !isGlobalLocked && toggleRotation(rect.originalIndex)
-                      }
-                    >
-                      {/* Wymiary i Opis */}
-                      <span className="absolute top-0.5 text-[7px] font-bold">
-                        {rect.w}
-                      </span>
-                      <span className="absolute left-0.5 text-[7px] font-bold [writing-mode:vertical-lr]">
-                        {rect.h}
-                      </span>
-                      <span className="text-[10px] font-black uppercase text-center leading-none">
-                        {rect.data}
-                      </span>
+                <div className="relative w-full h-full">
+                  {bin.map((rect: PackedItem) => {
+                    const cutData = cuts[rect.originalIndex];
+                    const workW = width - 2 * margin;
+                    const workL = length - 2 * margin;
 
-                      {/* Oklejanie (Użycie toggleEdge i totalEdgeLength) */}
-                      {cutData?.edges.top && (
-                        <div className="absolute top-0 w-full h-[2px] bg-red-600 z-10" />
-                      )}
-                      {cutData?.edges.bottom && (
-                        <div className="absolute bottom-0 w-full h-[2px] bg-red-600 z-10" />
-                      )}
-                      {cutData?.edges.left && (
-                        <div className="absolute left-0 h-full w-[2px] bg-red-600 z-10" />
-                      )}
-                      {cutData?.edges.right && (
-                        <div className="absolute right-0 h-full w-[2px] bg-red-600 z-10" />
-                      )}
+                    // MAGIA: Wizualnie powiększamy formatkę o `kerf`, żeby przykleiła się do następnej.
+                    // Eliminuje to błędy wyświetlania pustych przestrzeni i zaokrąglania pikseli.
+                    const pLeft = (rect.x / workW) * 100;
+                    const pTop = (rect.y / workL) * 100;
+                    const pWidth = ((rect.w + kerf) / workW) * 100;
+                    const pHeight = ((rect.h + kerf) / workL) * 100;
 
-                      {/* Interaktywne strefy oklejania */}
-                      {!isGlobalLocked && (
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 z-20 no-print">
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleEdge(rect.originalIndex, "top");
-                            }}
-                            className="absolute top-0 w-full h-1/4 hover:bg-red-500/20"
-                          />
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleEdge(rect.originalIndex, "bottom");
-                            }}
-                            className="absolute bottom-0 w-full h-1/4 hover:bg-red-500/20"
-                          />
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleEdge(rect.originalIndex, "left");
-                            }}
-                            className="absolute left-0 h-full w-1/4 hover:bg-red-500/20"
-                          />
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleEdge(rect.originalIndex, "right");
-                            }}
-                            className="absolute right-0 h-full w-1/4 hover:bg-red-500/20"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div
+                        key={rect.originalIndex}
+                        className={`absolute border border-black flex flex-col items-center justify-center bg-white group ${!isGlobalLocked ? "hover:bg-blue-50 cursor-pointer" : ""}`}
+                        style={{
+                          left: `${pLeft}%`,
+                          top: `${pTop}%`,
+                          width: `${pWidth}%`,
+                          height: `${pHeight}%`,
+                        }}
+                        onClick={() =>
+                          !isGlobalLocked && toggleRotation(rect.originalIndex)
+                        }
+                      >
+                        {/* Wymiary: 11px, wyśrodkowane */}
+                        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-[11px] font-bold text-slate-800 bg-white/90 px-1 z-20 leading-none">
+                          {rect.w}
+                        </span>
+
+                        <span className="absolute left-0.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-600 bg-white/90 px-1 z-20 leading-none">
+                          {rect.h}
+                        </span>
+
+                        <span className="text-[12px] font-black text-center px-1 leading-none uppercase z-20">
+                          {rect.data}
+                        </span>
+
+                        {/* Oklejanie */}
+                        {cutData?.edges.top && (
+                          <div className="absolute top-0 w-full h-[3px] bg-red-600 z-10" />
+                        )}
+                        {cutData?.edges.bottom && (
+                          <div className="absolute bottom-0 w-full h-[3px] bg-red-600 z-10" />
+                        )}
+                        {cutData?.edges.left && (
+                          <div className="absolute left-0 h-full w-[3px] bg-red-600 z-10" />
+                        )}
+                        {cutData?.edges.right && (
+                          <div className="absolute right-0 h-full w-[3px] bg-red-600 z-10" />
+                        )}
+
+                        {/* Strefy interakcji */}
+                        {!isGlobalLocked && (
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 z-30 no-print">
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleEdge(rect.originalIndex, "top");
+                              }}
+                              className="absolute top-0 w-full h-1/4 hover:bg-red-500/20"
+                            />
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleEdge(rect.originalIndex, "bottom");
+                              }}
+                              className="absolute bottom-0 w-full h-1/4 hover:bg-red-500/20"
+                            />
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleEdge(rect.originalIndex, "left");
+                              }}
+                              className="absolute left-0 h-full w-1/4 hover:bg-red-500/20"
+                            />
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleEdge(rect.originalIndex, "right");
+                              }}
+                              className="absolute right-0 h-full w-1/4 hover:bg-red-500/20"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
