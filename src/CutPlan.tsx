@@ -30,8 +30,6 @@ function CutPlan() {
 
   // --- SKALOWANIE ---
   const screenScale = 400 / width;
-
-  // Twarde wymiary dla wydruku A4 (z marginesem bezpieczeństwa)
   const MAX_PRINT_WIDTH_MM = 190;
   const MAX_PRINT_HEIGHT_MM = 270;
   const printScale = Math.min(
@@ -39,11 +37,11 @@ function CutPlan() {
     MAX_PRINT_HEIGHT_MM / length,
   );
 
-  // Funkcja drukująca - przywrócona działająca wersja
   const reactToPrintFn = useReactToPrint({
     documentTitle: `Plan_Ciecia_${new Date().toISOString().slice(0, 10)}`,
   });
 
+  // --- ALGORYTM: GUILLOTINE BIN PACKING ---
   const { packedBins, stats } = useMemo(() => {
     let itemsToPack = cuts
       .map((cut, index) => ({
@@ -52,68 +50,134 @@ function CutPlan() {
         originalIndex: index,
         label: cut.describe || "",
       }))
-      .sort((a, b) => b.h - a.h || b.w - a.w);
+      .sort((a, b) => {
+        const areaB = b.w * b.h;
+        const areaA = a.w * a.h;
+        if (areaB !== areaA) return areaB - areaA;
+        return Math.max(b.w, b.h) - Math.max(a.w, a.h);
+      });
 
-    let bins: PackedItem[][] = [];
-    let currentBin: PackedItem[] = [];
-    let shelfX = 0,
-      shelfY = 0,
-      shelfHeight = 0;
     const workWidth = width - 2 * margin;
     const workHeight = length - 2 * margin;
 
+    let bins: { placed: PackedItem[]; freeRects: Rect[] }[] = [];
+
     itemsToPack.forEach((item) => {
-      if (shelfX + item.w <= workWidth && shelfY + item.h <= workHeight) {
-        currentBin.push({
-          x: shelfX,
-          y: shelfY,
-          w: item.w,
-          h: item.h,
-          originalIndex: item.originalIndex,
-          data: item.label,
-        });
-        shelfX += item.w + kerf;
-        shelfHeight = Math.max(shelfHeight, item.h);
-      } else if (shelfY + shelfHeight + kerf + item.h <= workHeight) {
-        shelfY += shelfHeight + kerf;
-        shelfX = 0;
-        shelfHeight = item.h;
-        currentBin.push({
-          x: shelfX,
-          y: shelfY,
-          w: item.w,
-          h: item.h,
-          originalIndex: item.originalIndex,
-          data: item.label,
-        });
-        shelfX += item.w + kerf;
-      } else {
-        if (currentBin.length > 0) bins.push(currentBin);
-        currentBin = [
-          {
-            x: 0,
-            y: 0,
+      let placed = false;
+      let itemW = item.w + kerf;
+      let itemH = item.h + kerf;
+
+      for (let b = 0; b < bins.length; b++) {
+        let bin = bins[b];
+        let bestFitIndex = -1;
+        let bestFitArea = Infinity;
+
+        for (let f = 0; f < bin.freeRects.length; f++) {
+          let fr = bin.freeRects[f];
+          if (fr.w >= itemW && fr.h >= itemH) {
+            let areaFit = fr.w * fr.h;
+            if (areaFit < bestFitArea) {
+              bestFitArea = areaFit;
+              bestFitIndex = f;
+            }
+          }
+        }
+
+        if (bestFitIndex !== -1) {
+          let fr = bin.freeRects[bestFitIndex];
+          bin.freeRects.splice(bestFitIndex, 1);
+
+          bin.placed.push({
+            x: fr.x,
+            y: fr.y,
             w: item.w,
             h: item.h,
             originalIndex: item.originalIndex,
             data: item.label,
-          },
-        ];
-        shelfX = item.w + kerf;
-        shelfY = 0;
-        shelfHeight = item.h;
+          });
+
+          const remW = fr.w - itemW;
+          const remH = fr.h - itemH;
+
+          if (remW > 0 || remH > 0) {
+            if (remW > remH) {
+              if (remH > 0)
+                bin.freeRects.push({
+                  x: fr.x,
+                  y: fr.y + itemH,
+                  w: itemW,
+                  h: remH,
+                });
+              if (remW > 0)
+                bin.freeRects.push({
+                  x: fr.x + itemW,
+                  y: fr.y,
+                  w: remW,
+                  h: fr.h,
+                });
+            } else {
+              if (remW > 0)
+                bin.freeRects.push({
+                  x: fr.x + itemW,
+                  y: fr.y,
+                  w: remW,
+                  h: itemH,
+                });
+              if (remH > 0)
+                bin.freeRects.push({
+                  x: fr.x,
+                  y: fr.y + itemH,
+                  w: fr.w,
+                  h: remH,
+                });
+            }
+          }
+          placed = true;
+          break;
+        }
+      }
+
+      if (!placed) {
+        let newBin = {
+          placed: [
+            {
+              x: 0,
+              y: 0,
+              w: item.w,
+              h: item.h,
+              originalIndex: item.originalIndex,
+              data: item.label,
+            },
+          ],
+          freeRects: [] as Rect[],
+        };
+
+        const remW = workWidth - itemW;
+        const remH = workHeight - itemH;
+
+        if (remW > remH) {
+          if (remH > 0)
+            newBin.freeRects.push({ x: 0, y: itemH, w: itemW, h: remH });
+          if (remW > 0)
+            newBin.freeRects.push({ x: itemW, y: 0, w: remW, h: workHeight });
+        } else {
+          if (remW > 0)
+            newBin.freeRects.push({ x: itemW, y: 0, w: remW, h: itemH });
+          if (remH > 0)
+            newBin.freeRects.push({ x: 0, y: itemH, w: workWidth, h: remH });
+        }
+
+        bins.push(newBin);
       }
     });
-    if (currentBin.length > 0) bins.push(currentBin);
+
+    const finalPackedBins = bins.map((bin) => bin.placed);
 
     return {
-      packedBins: bins,
-      stats: bins.map((bin) => ({
+      packedBins: finalPackedBins,
+      stats: finalPackedBins.map((bin) => ({
         efficiency:
-          (bin.reduce(
-            (acc: number, item: PackedItem) => acc + item.w * item.h,
-            0,
-          ) /
+          (bin.reduce((acc, item) => acc + item.w * item.h, 0) /
             (width * length)) *
           100,
       })),
@@ -127,31 +191,13 @@ function CutPlan() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @page { 
-          size: A4 portrait; 
-          margin: 0mm; /* Brak nagłówków przeglądarki z adresami URL */
-        }
+        @page { size: A4 portrait; margin: 0mm; }
         @media print {
           .no-print { display: none !important; }
           body, html { background: white !important; padding: 0 !important; margin: 0 !important; }
-          
-          .print-container { 
-            width: 100% !important; 
-            padding: 10mm !important; 
-          }
-          
-          .arkusz-page {
-            page-break-after: always !important;
-            page-break-inside: avoid !important;
-            display: block;
-            width: 100%;
-            margin-bottom: 0 !important;
-          }
-          
-          .arkusz-page:last-child {
-            page-break-after: auto !important; 
-          }
-
+          .print-container { width: 100% !important; padding: 10mm !important; }
+          .arkusz-page { page-break-after: always !important; page-break-inside: avoid !important; display: block; width: 100%; margin-bottom: 0 !important; }
+          .arkusz-page:last-child { page-break-after: auto !important; }
           .plate-box { 
             width: ${width * printScale}mm !important; 
             height: ${length * printScale}mm !important; 
@@ -204,7 +250,6 @@ function CutPlan() {
             key={bIdx}
             className="arkusz-page w-full flex flex-col items-center mb-10 print:mb-0"
           >
-            {/* Nagłówek raportu */}
             <div
               className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end"
               style={{ width: width * screenScale, maxWidth: "100%" }}
@@ -236,7 +281,6 @@ function CutPlan() {
               </div>
             </div>
 
-            {/* Płyta z formatkami */}
             <div
               className="plate-box relative bg-white border-2 border-black mx-auto"
               style={{
@@ -244,7 +288,6 @@ function CutPlan() {
                 height: length * screenScale,
               }}
             >
-              {/* overflow-hidden ucina nadmiarowe wizualne rozciągnięcie kerfu przy krawędziach */}
               <div
                 className="relative h-full w-full overflow-hidden"
                 style={{ padding: `${(margin / width) * 100}%` }}
@@ -255,12 +298,15 @@ function CutPlan() {
                     const workW = width - 2 * margin;
                     const workL = length - 2 * margin;
 
-                    // MAGIA: Wizualnie powiększamy formatkę o `kerf`, żeby przykleiła się do następnej.
-                    // Eliminuje to błędy wyświetlania pustych przestrzeni i zaokrąglania pikseli.
                     const pLeft = (rect.x / workW) * 100;
                     const pTop = (rect.y / workL) * 100;
                     const pWidth = ((rect.w + kerf) / workW) * 100;
                     const pHeight = ((rect.h + kerf) / workL) * 100;
+
+                    // INTELIGENTNY OBRÓT
+                    const narrowThreshold = width * 0.1;
+                    const rotateText =
+                      rect.w < narrowThreshold && rect.h >= narrowThreshold;
 
                     return (
                       <div
@@ -276,20 +322,27 @@ function CutPlan() {
                           !isGlobalLocked && toggleRotation(rect.originalIndex)
                         }
                       >
-                        {/* Wymiary: 11px, wyśrodkowane */}
-                        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-[11px] font-bold text-slate-800 bg-white/90 px-1 z-20 leading-none">
+                        {/* Szerokość (W) - Ekran: 11px | Druk: 15px */}
+                        <span
+                          className={`absolute top-0.5 left-1/2 -translate-x-1/2 text-[11px] print:text-[20px] font-bold text-slate-800 bg-white/90 px-0.5 z-20 leading-none ${rotateText ? "[writing-mode:vertical-rl] rotate-180" : ""}`}
+                        >
                           {rect.w}
                         </span>
 
-                        <span className="absolute left-0.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-600 bg-white/90 px-1 z-20 leading-none">
+                        {/* Wysokość (H) - Ekran: 11px | Druk: 15px */}
+                        <span
+                          className={`absolute left-0.5 top-1/2 -translate-y-1/2 text-[11px] print:text-[20px] font-bold text-slate-600 bg-white/90 px-0.5 z-20 leading-none ${rotateText ? "[writing-mode:vertical-rl] rotate-180" : ""}`}
+                        >
                           {rect.h}
                         </span>
 
-                        <span className="text-[12px] font-black text-center px-1 leading-none uppercase z-20">
+                        {/* Opis - Ekran: 12px | Druk: 14px */}
+                        <span
+                          className={`text-[12px] print:text-[20px] font-black text-center px-1 leading-none uppercase z-20 max-w-[95%] overflow-hidden text-ellipsis whitespace-nowrap ${rotateText ? "[writing-mode:vertical-rl] rotate-180 max-h-[90%] whitespace-normal translate-x-5" : "translate-y-5"}`}
+                        >
                           {rect.data}
                         </span>
 
-                        {/* Oklejanie */}
                         {cutData?.edges.top && (
                           <div className="absolute top-0 w-full h-[3px] bg-red-600 z-10" />
                         )}
@@ -303,7 +356,6 @@ function CutPlan() {
                           <div className="absolute right-0 h-full w-[3px] bg-red-600 z-10" />
                         )}
 
-                        {/* Strefy interakcji */}
                         {!isGlobalLocked && (
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 z-30 no-print">
                             <div
