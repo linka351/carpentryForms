@@ -15,7 +15,7 @@ import {
 } from "../validations/cutSheetFormsSchema.ts";
 import { Button } from "./ui/button/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Minus } from "lucide-react";
+import { Trash2, Minus, Plus } from "lucide-react";
 import { applyEdgePattern } from "../utils/edgeUtils";
 import type { ExtendedCutoutValues } from "../context/types";
 
@@ -25,6 +25,7 @@ export const initialCutSheetValues: CutoutFormValues = {
   quanity: 1,
   describe: "",
   isLocked: false,
+  edgeGroup: "A", // Domyślnie grupa A
   edges: { top: false, right: false, bottom: false, left: false },
 };
 
@@ -42,6 +43,20 @@ const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
   { name: "width", label: "Szerokość (mm)", type: "number" },
   { name: "quanity", label: "Ilość", type: "number" },
   { name: "describe", label: "Opis", type: "text" },
+  // Grupa Okleiny przeniesiona na sam koniec
+  {
+    name: "edgeGroup",
+    label: "Grupa Okleiny",
+    type: "select",
+    options: [
+      { value: "A", label: "Okleina A" },
+      { value: "B", label: "Okleina B" },
+      { value: "C", label: "Okleina C" },
+      { value: "D", label: "Okleina D" },
+      { value: "E", label: "Okleina E" },
+      { value: "F", label: "Okleina F" },
+    ],
+  },
 ];
 
 export default function CutSheetForms({
@@ -63,7 +78,8 @@ export default function CutSheetForms({
     const groups: Record<string, ExtendedCutoutValues & { indices: number[] }> =
       {};
     cuts.forEach((cut, index) => {
-      const key = `${cut.length}-${cut.width}-${cut.describe}-${!!cut.isLocked}-${cut.edgePattern}`;
+      // Grupujemy po wszystkich cechach włącznie z grupą okleiny (edgeGroup)
+      const key = `${cut.length}-${cut.width}-${cut.describe}-${!!cut.isLocked}-${cut.edgePattern}-${cut.edgeGroup}`;
       if (groups[key]) {
         groups[key].quanity += 1;
         groups[key].indices.push(index);
@@ -80,15 +96,28 @@ export default function CutSheetForms({
       ...values,
       quanity: 1,
       isLocked: false,
-      edgePattern: "O",
+      edgeGroup: values.edgeGroup || "A", // Zapisuje grupę okleiny z formularza
       edges: { top: false, right: false, bottom: false, left: false },
     }));
     addCuts(elementsToAdd);
     resetForm(initialCutSheetValues);
+
+    // Automatyczny powrót focusu na pole długości formatek
+    setTimeout(() => {
+      const formSection = document.getElementById("cutout-form-section");
+      if (formSection) {
+        const lengthInput = formSection.querySelector(
+          'input[name="length"]',
+        ) as HTMLInputElement;
+        if (lengthInput) {
+          lengthInput.focus();
+        }
+      }
+    }, 50);
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full" id="cutout-form-section">
       {(!showOnly || showOnly === "form") && (
         <ReusableForm<CutoutFormValues>
           title="Nowa Formatka"
@@ -101,12 +130,15 @@ export default function CutSheetForms({
       )}
 
       {(!showOnly || showOnly === "table") && (
-        <div className="border border-slate-200 rounded-2xl bg-white shadow-lg overflow-hidden w-full">
+        <div className="border border-slate-200 rounded-2xl bg-white shadow-lg overflow-hidden w-full mt-4">
           <Table className="w-full">
             <TableHeader className="bg-slate-50">
               <TableRow className="h-14">
                 <TableHead className="w-[80px] text-center font-bold text-slate-400 uppercase text-[10px]">
                   Blokada
+                </TableHead>
+                <TableHead className="font-bold text-slate-400 uppercase text-[10px]">
+                  Okleina
                 </TableHead>
                 <TableHead className="font-bold text-slate-400 uppercase text-[10px]">
                   Element
@@ -129,7 +161,7 @@ export default function CutSheetForms({
               {groupedCuts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="h-32 text-center text-slate-300 italic"
                   >
                     Lista formatowania jest pusta...
@@ -150,10 +182,13 @@ export default function CutSheetForms({
                         }
                       />
                     </TableCell>
+                    <TableCell className="font-black text-blue-600 text-lg">
+                      {group.edgeGroup || "A"}
+                    </TableCell>
                     <TableCell className="font-bold text-slate-700">
                       {group.describe || "-"}
                     </TableCell>
-                    <TableCell className="text-center font-mono font-black text-blue-700 text-lg">
+                    <TableCell className="text-center font-mono font-black text-slate-800 text-lg">
                       {group.length} × {group.width}
                     </TableCell>
                     <TableCell className="text-center">
@@ -174,7 +209,6 @@ export default function CutSheetForms({
                             <input
                               type="checkbox"
                               name={`edge-group-${gIdx}`}
-                              // Sprawdzamy czy dany wzór jest w tablicy
                               checked={(group.edgePattern || []).includes(
                                 opt.value,
                               )}
@@ -185,26 +219,21 @@ export default function CutSheetForms({
                                 const clickedValue = opt.value;
                                 let nextPatterns: string[];
 
-                                // --- 1. Obsługa ORAZ (O) i (X) ---
                                 if (
                                   clickedValue === "O" ||
                                   clickedValue === "X"
                                 ) {
                                   nextPatterns = [clickedValue];
                                 } else {
-                                  // Usuwamy O i X, bo wybieramy konkretne boki
                                   let tempPatterns = currentPatterns.filter(
                                     (p) => p !== "O" && p !== "X",
                                   );
 
-                                  // --- 2. Logika "Toggle" z zależnościami ---
                                   if (tempPatterns.includes(clickedValue)) {
-                                    // ODZNACZAMY
                                     tempPatterns = tempPatterns.filter(
                                       (p) => p !== clickedValue,
                                     );
 
-                                    // Zależność w dół: jeśli odznaczysz 1D, usuń też 2D
                                     if (clickedValue === "1D")
                                       tempPatterns = tempPatterns.filter(
                                         (p) => p !== "2D",
@@ -214,10 +243,8 @@ export default function CutSheetForms({
                                         (p) => p !== "2K",
                                       );
                                   } else {
-                                    // ZAZNACZAMY
                                     tempPatterns.push(clickedValue);
 
-                                    // Zależność w górę: jeśli zaznaczysz 2D, automatycznie zaznacz też 1D
                                     if (
                                       clickedValue === "2D" &&
                                       !tempPatterns.includes("1D")
@@ -233,12 +260,10 @@ export default function CutSheetForms({
                                   nextPatterns = tempPatterns;
                                 }
 
-                                // Jeśli wszystko odznaczone, wróć do "X"
                                 if (nextPatterns.length === 0) {
                                   nextPatterns = ["X"];
                                 }
 
-                                // --- 3. Obliczanie końcowych krawędzi (Suma logiczna) ---
                                 const combinedEdges = nextPatterns.reduce(
                                   (acc, pattern) => {
                                     const patternEdges = applyEdgePattern(
@@ -261,7 +286,6 @@ export default function CutSheetForms({
                                   },
                                 );
 
-                                // --- 4. Aktualizacja stanu ---
                                 group.indices.forEach((idx) =>
                                   updateCutEdges(
                                     idx,
@@ -280,6 +304,31 @@ export default function CutSheetForms({
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <div className="flex justify-end gap-2">
+                        {/* PRZYCISK PLUS (Klonowanie formatki) - TERAZ Z "as any" */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 w-9 text-emerald-600 border-emerald-100 hover:bg-emerald-50"
+                          onClick={() => {
+                            const cutToCopy = cuts[group.indices[0]];
+                            addCuts([
+                              {
+                                ...cutToCopy,
+                                quanity: 1,
+                                edges: { ...cutToCopy.edges },
+                                edgePattern: Array.isArray(
+                                  cutToCopy.edgePattern,
+                                )
+                                  ? [...cutToCopy.edgePattern]
+                                  : cutToCopy.edgePattern,
+                              } as any,
+                            ]);
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+
+                        {/* PRZYCISK MINUS (Usuwanie jednej sztuki) */}
                         <Button
                           variant="outline"
                           size="sm"
@@ -292,6 +341,8 @@ export default function CutSheetForms({
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
+
+                        {/* PRZYCISK KOSZ (Usuwanie całej grupy) */}
                         <Button
                           variant="ghost"
                           size="sm"

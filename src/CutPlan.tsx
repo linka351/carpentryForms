@@ -12,6 +12,8 @@ interface Rect {
 interface PackedItem extends Rect {
   originalIndex: number;
   data: string;
+  autoRotated?: boolean;
+  edgeGroup?: string; // DODANE DO TYPU
 }
 
 function CutPlan() {
@@ -21,44 +23,68 @@ function CutPlan() {
     toggleRotation,
     toggleEdge,
     isGlobalLocked,
-    totalEdgeLength,
+    totalEdgeLength, // To teraz jest obiekt!
   } = useAppData();
 
   const { margin, kerf, width, length } = plateParams;
+  const projectName = (plateParams as any).projectName;
+
   const contentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // --- SKALOWANIE ---
   const screenScale = 400 / width;
   const MAX_PRINT_WIDTH_MM = 190;
-  const MAX_PRINT_HEIGHT_MM = 270;
+  const MAX_PRINT_HEIGHT_MM = 245;
   const printScale = Math.min(
     MAX_PRINT_WIDTH_MM / width,
     MAX_PRINT_HEIGHT_MM / length,
   );
 
   const reactToPrintFn = useReactToPrint({
-    documentTitle: `Plan_Ciecia_${new Date().toISOString().slice(0, 10)}`,
+    documentTitle: projectName
+      ? `Plan_Ciecia_${projectName}`
+      : `Plan_Ciecia_${new Date().toISOString().slice(0, 10)}`,
   });
 
-  // --- ALGORYTM: GUILLOTINE BIN PACKING ---
   const { packedBins, stats } = useMemo(() => {
+    const workWidth = width - 2 * margin;
+    const workHeight = length - 2 * margin;
+
     let itemsToPack = cuts
-      .map((cut, index) => ({
-        w: cut.width,
-        h: cut.length,
-        originalIndex: index,
-        label: cut.describe || "",
-      }))
+      .map((cut, index) => {
+        let w = cut.width;
+        let h = cut.length;
+        let autoRotated = false;
+
+        let wWithKerf = w + kerf;
+        let hWithKerf = h + kerf;
+
+        if (wWithKerf > workWidth || hWithKerf > workHeight) {
+          if (hWithKerf <= workWidth && wWithKerf <= workHeight) {
+            w = cut.length;
+            h = cut.width;
+            autoRotated = true;
+          } else {
+            if (wWithKerf > workWidth) w = Math.max(10, workWidth - kerf);
+            if (hWithKerf > workHeight) h = Math.max(10, workHeight - kerf);
+          }
+        }
+
+        return {
+          w,
+          h,
+          originalIndex: index,
+          label: cut.describe || "",
+          edgeGroup: cut.edgeGroup || "A", // POBIERAMY GRUPĘ DO RYSUNKU
+          autoRotated,
+        };
+      })
       .sort((a, b) => {
         const areaB = b.w * b.h;
         const areaA = a.w * a.h;
         if (areaB !== areaA) return areaB - areaA;
         return Math.max(b.w, b.h) - Math.max(a.w, a.h);
       });
-
-    const workWidth = width - 2 * margin;
-    const workHeight = length - 2 * margin;
 
     let bins: { placed: PackedItem[]; freeRects: Rect[] }[] = [];
 
@@ -94,6 +120,8 @@ function CutPlan() {
             h: item.h,
             originalIndex: item.originalIndex,
             data: item.label,
+            edgeGroup: item.edgeGroup,
+            autoRotated: item.autoRotated,
           });
 
           const remW = fr.w - itemW;
@@ -147,6 +175,8 @@ function CutPlan() {
               h: item.h,
               originalIndex: item.originalIndex,
               data: item.label,
+              edgeGroup: item.edgeGroup,
+              autoRotated: item.autoRotated,
             },
           ],
           freeRects: [] as Rect[],
@@ -166,7 +196,6 @@ function CutPlan() {
           if (remH > 0)
             newBin.freeRects.push({ x: 0, y: itemH, w: workWidth, h: remH });
         }
-
         bins.push(newBin);
       }
     });
@@ -183,8 +212,6 @@ function CutPlan() {
       })),
     };
   }, [cuts, width, length, margin, kerf]);
-
-  const formattedOkleina = (totalEdgeLength / 1000).toFixed(2);
 
   return (
     <div className="p-4 bg-slate-100 min-h-screen">
@@ -208,7 +235,6 @@ function CutPlan() {
         }}
       />
 
-      {/* PANEL EKRANOWY */}
       <div className="max-w-5xl mx-auto flex flex-col gap-4 no-print mb-6">
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <button
@@ -218,17 +244,31 @@ function CutPlan() {
             ⬅ Wstecz
           </button>
 
-          <div className="flex gap-6 text-sm font-black uppercase text-slate-700">
+          <div className="flex gap-6 text-sm font-black uppercase text-slate-700 items-center">
+            {projectName && (
+              <span className="text-blue-600 mr-4">Projekt: {projectName}</span>
+            )}
             <span>
               Wydajność:{" "}
               <span className="text-green-600">
                 {(stats[0]?.efficiency || 0).toFixed(1)}%
               </span>
             </span>
-            <span>
-              Okleina:{" "}
-              <span className="text-orange-500">{formattedOkleina}m</span>
-            </span>
+
+            {/* RENDEROWANIE GRUP OKLEIN NA EKRANIE */}
+            <div className="flex gap-3 flex-wrap border-l-2 pl-4">
+              <span className="text-xs text-slate-400">OKLEINA:</span>
+              {Object.entries(totalEdgeLength as Record<string, number>).map(
+                ([group, length]) => (
+                  <span key={group}>
+                    {group}:{" "}
+                    <span className="text-orange-500">
+                      {(length / 1000).toFixed(2)}m
+                    </span>
+                  </span>
+                ),
+              )}
+            </div>
           </div>
 
           <button
@@ -240,7 +280,6 @@ function CutPlan() {
         </div>
       </div>
 
-      {/* OBSZAR WYDRUKU */}
       <div
         ref={contentRef}
         className="print-container mx-auto flex flex-col items-center bg-white"
@@ -272,11 +311,23 @@ function CutPlan() {
                     {stats[bIdx].efficiency.toFixed(1)}%
                   </p>
                 </div>
+                {/* RENDEROWANIE GRUP OKLEIN NA WYDRUKU */}
                 <div>
                   <p className="text-[9px] font-black uppercase leading-none">
                     Suma Okleiny
                   </p>
-                  <p className="text-sm font-black">{formattedOkleina} mb</p>
+                  <div className="text-[11px] font-black leading-tight">
+                    {Object.entries(
+                      totalEdgeLength as Record<string, number>,
+                    ).map(([group, length]) => (
+                      <div key={group}>
+                        {group}:{" "}
+                        <span className="text-slate-600">
+                          {(length / 1000).toFixed(2)} mb
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -303,7 +354,15 @@ function CutPlan() {
                     const pWidth = ((rect.w + kerf) / workW) * 100;
                     const pHeight = ((rect.h + kerf) / workL) * 100;
 
-                    // INTELIGENTNY OBRÓT
+                    const renderEdges = rect.autoRotated
+                      ? {
+                          top: cutData.edges.left,
+                          right: cutData.edges.top,
+                          bottom: cutData.edges.right,
+                          left: cutData.edges.bottom,
+                        }
+                      : cutData.edges;
+
                     const narrowThreshold = width * 0.1;
                     const rotateText =
                       rect.w < narrowThreshold && rect.h >= narrowThreshold;
@@ -322,37 +381,38 @@ function CutPlan() {
                           !isGlobalLocked && toggleRotation(rect.originalIndex)
                         }
                       >
-                        {/* Szerokość (W) - Ekran: 11px | Druk: 15px */}
                         <span
                           className={`absolute top-0.5 left-1/2 -translate-x-1/2 text-[11px] print:text-[20px] font-bold text-slate-800 bg-white/90 px-0.5 z-20 leading-none ${rotateText ? "[writing-mode:vertical-rl] rotate-180" : ""}`}
                         >
                           {rect.w}
                         </span>
 
-                        {/* Wysokość (H) - Ekran: 11px | Druk: 15px */}
                         <span
                           className={`absolute left-0.5 top-1/2 -translate-y-1/2 text-[11px] print:text-[20px] font-bold text-slate-600 bg-white/90 px-0.5 z-20 leading-none ${rotateText ? "[writing-mode:vertical-rl] rotate-180" : ""}`}
                         >
                           {rect.h}
                         </span>
 
-                        {/* Opis - Ekran: 12px | Druk: 14px */}
+                        {/* DODANIE LITERY GRUPY PRZED OPISEM */}
                         <span
-                          className={`text-[12px] print:text-[20px] font-black text-center px-1 leading-none uppercase z-20 max-w-[95%] overflow-hidden text-ellipsis whitespace-nowrap ${rotateText ? "[writing-mode:vertical-rl] rotate-180 max-h-[90%] whitespace-normal translate-x-5" : "translate-y-5"}`}
+                          className={`text-[12px] print:text-[20px] font-black text-center px-1 flex gap-1 items-center leading-none uppercase z-20 max-w-[95%] overflow-hidden text-ellipsis whitespace-nowrap ${rotateText ? "[writing-mode:vertical-rl] rotate-180 max-h-[90%] whitespace-normal translate-x-5" : "translate-y-5"}`}
                         >
-                          {rect.data}
+                          <span className="text-blue-600 print:text-black opacity-80">
+                            {rect.edgeGroup}
+                          </span>
+                          <span>{rect.data}</span>
                         </span>
 
-                        {cutData?.edges.top && (
+                        {renderEdges?.top && (
                           <div className="absolute top-0 w-full h-[3px] bg-red-600 z-10" />
                         )}
-                        {cutData?.edges.bottom && (
+                        {renderEdges?.bottom && (
                           <div className="absolute bottom-0 w-full h-[3px] bg-red-600 z-10" />
                         )}
-                        {cutData?.edges.left && (
+                        {renderEdges?.left && (
                           <div className="absolute left-0 h-full w-[3px] bg-red-600 z-10" />
                         )}
-                        {cutData?.edges.right && (
+                        {renderEdges?.right && (
                           <div className="absolute right-0 h-full w-[3px] bg-red-600 z-10" />
                         )}
 
@@ -361,28 +421,40 @@ function CutPlan() {
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleEdge(rect.originalIndex, "top");
+                                toggleEdge(
+                                  rect.originalIndex,
+                                  rect.autoRotated ? "left" : "top",
+                                );
                               }}
                               className="absolute top-0 w-full h-1/4 hover:bg-red-500/20"
                             />
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleEdge(rect.originalIndex, "bottom");
+                                toggleEdge(
+                                  rect.originalIndex,
+                                  rect.autoRotated ? "right" : "bottom",
+                                );
                               }}
                               className="absolute bottom-0 w-full h-1/4 hover:bg-red-500/20"
                             />
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleEdge(rect.originalIndex, "left");
+                                toggleEdge(
+                                  rect.originalIndex,
+                                  rect.autoRotated ? "bottom" : "left",
+                                );
                               }}
                               className="absolute left-0 h-full w-1/4 hover:bg-red-500/20"
                             />
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleEdge(rect.originalIndex, "right");
+                                toggleEdge(
+                                  rect.originalIndex,
+                                  rect.autoRotated ? "top" : "right",
+                                );
                               }}
                               className="absolute right-0 h-full w-1/4 hover:bg-red-500/20"
                             />
@@ -394,6 +466,15 @@ function CutPlan() {
                 </div>
               </div>
             </div>
+
+            {projectName && (
+              <div
+                className="mt-2 text-right font-black uppercase text-slate-500 text-[10px] print:text-[14px]"
+                style={{ width: width * screenScale, maxWidth: "100%" }}
+              >
+                Projekt: <span className="text-black ml-1">{projectName}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>

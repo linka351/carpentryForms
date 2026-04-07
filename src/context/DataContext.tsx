@@ -4,7 +4,7 @@ import {
   initialCutoutValues,
   initialPlateValues,
 } from "@/constants/context.const";
-import type { CutoutFormValues } from "@/validations/cutSheetFormsSchema.ts";
+//import type { CutoutFormValues } from "@/validations/cutSheetFormsSchema.ts";
 import type { ExtendedCutoutValues } from "./types";
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -21,24 +21,45 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // OBLICZANIE SUMY OKLEINY
   const totalEdgeLength = useMemo(() => {
-    return cuts.reduce((total, cut) => {
+    const totals: Record<string, number> = {};
+    cuts.forEach((cut) => {
+      const group = cut.edgeGroup || "A"; // Domyślnie trafia do A
       let currentCutSum = 0;
       if (cut.edges.top) currentCutSum += cut.width;
       if (cut.edges.bottom) currentCutSum += cut.width;
       if (cut.edges.left) currentCutSum += cut.length;
       if (cut.edges.right) currentCutSum += cut.length;
-      return total + currentCutSum;
-    }, 0);
+
+      if (currentCutSum > 0) {
+        if (!totals[group]) totals[group] = 0;
+        totals[group] += currentCutSum;
+      }
+    });
+    return totals; // Zwraca np. { A: 12000, B: 4500 }
   }, [cuts]);
 
   // DODAWANIE FORMATEK
-  const addCuts = useCallback((newCuts: CutoutFormValues[]) => {
+  const addCuts = useCallback((newCuts: any[]) => {
     const cutsWithDefaults = newCuts.map((cut) => ({
       ...cut,
-      isLocked: false,
-      edgePattern: ["O"], // ZMIANA: Tablica zamiast stringa
-      edges: { top: true, right: true, bottom: true, left: true },
+      // Jeśli formatka ma zablokowany obrót, zostawiamy, jak nie - domyślnie false
+      isLocked: cut.isLocked !== undefined ? cut.isLocked : false,
+
+      // Jeśli klonujemy i ma wzór, zostawiamy go, jak nie - domyślnie "O"
+      edgePattern: cut.edgePattern || ["O"],
+
+      // Zostawiamy grupę
+      edgeGroup: cut.edgeGroup || "A",
+
+      // Jeśli klonujemy krawędzie, zostawiamy, jak nie - czyste
+      edges: cut.edges || {
+        top: false,
+        right: false,
+        bottom: false,
+        left: false,
+      },
     }));
+
     setCuts((prev) => [...prev, ...cutsWithDefaults]);
   }, []);
 

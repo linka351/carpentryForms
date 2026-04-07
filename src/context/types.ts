@@ -14,7 +14,7 @@ export type AppContextType = {
     index: number,
     edge: "top" | "right" | "bottom" | "left",
   ) => void;
-  totalEdgeLength: number;
+  totalEdgeLength: Record<string, number>;
   isGlobalLocked: boolean;
   setIsGlobalLocked: (locked: boolean) => void;
   // POPRAWKA: Dodajemy trzeci argument 'pattern', aby zapisać wybór (np. "1D")
@@ -26,6 +26,7 @@ export type AppContextType = {
 };
 
 export interface ExtendedCutoutValues extends CutoutFormValues {
+  edgeGroup?: string; // Nowa właściwość do grupowania krawędzi
   isLocked: boolean;
   edgePattern: string[]; // Przechowuje informację o wybranym Radio (np. "1D", "2K")
   edges: {

@@ -1,6 +1,9 @@
 import * as Yup from "yup";
 
 export const formatFormsValidation = Yup.object({
+  projectName: Yup.string()
+    .max(50, "Nazwa projektu nie może być dłuższa niż 50 znaków")
+    .required("Nazwa projektu jest wymagana"),
   length: Yup.number()
     .min(1, "Długość musi być większa niż 0")
     .required("Długość jest wymagana"),

@@ -11,6 +11,7 @@ export default function FormatForms() {
   const { setPlateParams } = useAppData();
 
   const initialValues: FormValues = {
+    projectName: "", // <-- NOWE POLE (Domyślnie puste)
     length: 2800,
     width: 2070,
     margin: 10,
@@ -18,6 +19,7 @@ export default function FormatForms() {
   };
 
   const mainBoardFields: FormFieldConfig<FormValues>[] = [
+    { name: "projectName", label: "Nazwa rozkroju", type: "text" }, // <-- NOWE POLE W UI
     { name: "length", label: "Długość Płyty (mm)", type: "number" },
     { name: "width", label: "Szerokość Płyty (mm)", type: "number" },
     { name: "margin", label: "Margines (mm)", type: "number" },

@@ -1,6 +1,7 @@
 import * as Yup from "yup";
 
 export const cutSheetFormsSchema = Yup.object({
+  edgeGroup: Yup.string(),
   length: Yup.number()
     .min(1, "Długość musi być większa niż 0")
     .required("Długość jest wymagana"),
