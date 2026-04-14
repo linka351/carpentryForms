@@ -20,6 +20,7 @@ export const cutSheetFormsSchema = Yup.object({
     bottom: Yup.boolean(),
     left: Yup.boolean(),
   }),
+  edgePattern: Yup.array(),
 });
 
 export type CutoutFormValues = Yup.InferType<typeof cutSheetFormsSchema>;

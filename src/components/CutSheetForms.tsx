@@ -19,14 +19,16 @@ import { Trash2, Minus, Plus } from "lucide-react";
 import { applyEdgePattern } from "../utils/edgeUtils";
 import type { ExtendedCutoutValues } from "../context/types";
 
+// 1. ZMIANA: Dodano domyślny edgePattern: ["X"]
 export const initialCutSheetValues: CutoutFormValues = {
   length: 1,
   width: 1,
   quanity: 1,
   describe: "",
   isLocked: false,
-  edgeGroup: "A", // Domyślnie grupa A
+  edgeGroup: "A",
   edges: { top: false, right: false, bottom: false, left: false },
+  edgePattern: ["X"],
 };
 
 const EDGE_OPTIONS = [
@@ -43,7 +45,6 @@ const mainBoardFields: FormFieldConfig<CutoutFormValues>[] = [
   { name: "width", label: "Szerokość (mm)", type: "number" },
   { name: "quanity", label: "Ilość", type: "number" },
   { name: "describe", label: "Opis", type: "text" },
-  // Grupa Okleiny przeniesiona na sam koniec
   {
     name: "edgeGroup",
     label: "Grupa Okleiny",
@@ -78,7 +79,6 @@ export default function CutSheetForms({
     const groups: Record<string, ExtendedCutoutValues & { indices: number[] }> =
       {};
     cuts.forEach((cut, index) => {
-      // Grupujemy po wszystkich cechach włącznie z grupą okleiny (edgeGroup)
       const key = `${cut.length}-${cut.width}-${cut.describe}-${!!cut.isLocked}-${cut.edgePattern}-${cut.edgeGroup}`;
       if (groups[key]) {
         groups[key].quanity += 1;
@@ -96,11 +96,18 @@ export default function CutSheetForms({
       ...values,
       quanity: 1,
       isLocked: false,
-      edgeGroup: values.edgeGroup || "A", // Zapisuje grupę okleiny z formularza
+      edgeGroup: values.edgeGroup || "A",
       edges: { top: false, right: false, bottom: false, left: false },
+      edgePattern: ["X"], // 2. ZMIANA: Przypisywanie wzoru przy dodawaniu elementu
     }));
-    addCuts(elementsToAdd);
-    resetForm(initialCutSheetValues);
+
+    addCuts(elementsToAdd as any);
+
+    // 3. ZMIANA: Po resecie wracamy do ustawień domyślnych, ale zapamiętujemy ostatnią grupę okleiny
+    resetForm({
+      ...initialCutSheetValues,
+      edgeGroup: values.edgeGroup,
+    });
 
     // Automatyczny powrót focusu na pole długości formatek
     setTimeout(() => {
@@ -304,7 +311,6 @@ export default function CutSheetForms({
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <div className="flex justify-end gap-2">
-                        {/* PRZYCISK PLUS (Klonowanie formatki) - TERAZ Z "as any" */}
                         <Button
                           variant="outline"
                           size="sm"
@@ -328,7 +334,6 @@ export default function CutSheetForms({
                           <Plus className="h-4 w-4" />
                         </Button>
 
-                        {/* PRZYCISK MINUS (Usuwanie jednej sztuki) */}
                         <Button
                           variant="outline"
                           size="sm"
@@ -342,7 +347,6 @@ export default function CutSheetForms({
                           <Minus className="h-4 w-4" />
                         </Button>
 
-                        {/* PRZYCISK KOSZ (Usuwanie całej grupy) */}
                         <Button
                           variant="ghost"
                           size="sm"

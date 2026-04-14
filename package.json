@@ -35,6 +35,8 @@
     "clsx": "^2.1.1",
     "formik": "^2.4.6",
     "guillotine-packer": "^1.0.2",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.545.0",
     "maxrects-packer": "^2.7.3",
     "react": "^19.1.1",
